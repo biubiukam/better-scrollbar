@@ -36,8 +36,7 @@
 		"resolveJsonModule": true,
 		"stripInternal": true,
 		"types": [
-			"node",
-			"jest"
+			"node"
 		],
 		"paths": {
 			"@/*": [

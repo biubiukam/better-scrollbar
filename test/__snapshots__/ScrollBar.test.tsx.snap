@@ -1,4 +1,46 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`VirtualScrollBar > matches snapshot 1`] = `
+<div
+  class="scroll-bar-outer-container"
+  style="width: 600px; height: 600px;"
+>
+  <div
+    class="scroll-bar-inner-container"
+    style="width: 600px; height: 600px;"
+  >
+    <div
+      class="scroll-bar-container"
+      style="height: 400px;"
+    >
+      <div
+        class="scroll-bar-wrapper"
+        style="transform: translateY(0px);"
+      >
+        <div
+          style="height: 50px;"
+        >
+          0
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          1
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+    class="scroll-bar-vertical-track"
+    style="width: 6px; right: 2px; bottom: 2px; top: 2px; border-radius: 3px;"
+  >
+    <div
+      class="scroll-bar-vertical-thumb"
+      style="transform: translateY(0px); height: 0px; cursor: pointer; border-radius: inherit; background-color: rgba(0, 0, 0, 0.2);"
+    />
+  </div>
+</div>
+`;
 
 exports[`VirtualScrollBar matches snapshot 1`] = `
 <div

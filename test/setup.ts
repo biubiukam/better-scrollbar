@@ -1,13 +1,9 @@
-// import { configure } from "enzyme"
-// import Adapter from "enzyme-adapter-react-16"
-// import "@testing-library/jest-dom"
-// import "@jest/globals"
-// import "@jest/globals"
-// import util from "util"
+import { beforeAll } from "vitest"
 
-// configure({adapter: new Adapter()})
-
+// 设置 ResizeObserver polyfill
 window.ResizeObserver = require("resize-observer-polyfill")
 
-// Object.defineProperty(window, "TextEncoder", {writable: true, value: util.TextEncoder})
-// Object.defineProperty(window, "TextDecoder", {writable: true, value: util.TextDecoder})
+// 可以在这里添加更多的全局测试配置
+beforeAll(() => {
+	// 全局测试设置
+})
