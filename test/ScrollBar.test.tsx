@@ -618,4 +618,111 @@ describe("VirtualScrollBar", () => {
 		expect(lastRange.endIndex - lastRange.visibleEndIndex).toBe(1)
 		vi.useRealTimers()
 	})
+
+	it("renders the active sticky item even when it is outside the virtual range", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar height={40} itemHeight={20} overscan={0} stickyIndices={[0, 10, 20]} ref={ref}>
+				{Array.from({ length: 30 }, (_, index) => (
+					<div key={index} data-testid={`row-${index}`}>
+						{index === 10 ? "Group B" : `Row ${index}`}
+					</div>
+				))}
+			</VirtualScrollBar>
+		)
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 260 })
+		})
+
+		const sticky = container.querySelector(".scroll-bar-sticky-item") as HTMLElement
+		expect(sticky).not.toBeNull()
+		expect(sticky.textContent).toBe("Group B")
+		expect(sticky.style.position).toBe("sticky")
+		expect(sticky.style.top).toBe("0px")
+		expect(container.querySelector("[data-testid='row-13']")).not.toBeNull()
+	})
+
+	it("derives sticky group headers from groupCounts", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[3, 2]} ref={ref}>
+				<div key="group-0">Group 0</div>
+				<div key="item-0-0">Item 0-0</div>
+				<div key="item-0-1">Item 0-1</div>
+				<div key="item-0-2">Item 0-2</div>
+				<div key="group-1">Group 1</div>
+				<div key="item-1-0">Item 1-0</div>
+				<div key="item-1-1">Item 1-1</div>
+			</VirtualScrollBar>
+		)
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 100 })
+		})
+
+		expect(container.querySelector(".scroll-bar-sticky-item")?.textContent).toBe("Group 1")
+	})
+
+	it("adds virtualized grid row count and row index accessibility attributes", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar
+				height={40}
+				itemHeight={20}
+				itemCount={50}
+				renderItem={(index) => (
+					<div key={index} data-testid={`row-${index}`}>
+						Row {index}
+					</div>
+				)}
+				accessibility={{ role: "grid", label: "Virtual rows", rowCount: 50, itemRole: "row" }}
+				ref={ref}
+			/>
+		)
+
+		const grid = container.querySelector("[role='grid']") as HTMLElement
+		expect(grid).not.toBeNull()
+		expect(grid.getAttribute("aria-label")).toBe("Virtual rows")
+		expect(grid.getAttribute("aria-rowcount")).toBe("50")
+		expect(container.querySelector("[data-testid='row-0']")?.getAttribute("role")).toBe("row")
+		expect(container.querySelector("[data-testid='row-0']")?.getAttribute("aria-rowindex")).toBe("1")
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 80 })
+		})
+
+		expect(container.querySelector("[data-testid='row-4']")?.getAttribute("aria-rowindex")).toBe("5")
+	})
+
+	it("uses a configurable physical scroll height for massive logical ranges", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar
+				height={100}
+				itemCount={1_000_000}
+				estimatedItemHeight={100}
+				maxBrowserScrollHeight={1000}
+				renderItem={(index) => (
+					<div key={index} data-testid="massive-row">
+						{index}
+					</div>
+				)}
+				ref={ref}
+			/>
+		)
+		const scrollContainer = container.querySelector(".scroll-bar-container") as HTMLElement
+		const wrapper = container.querySelector(".scroll-bar-wrapper") as HTMLElement
+
+		expect(ref.current?.getScrollState().scrollHeight).toBe(100_000_000)
+		expect(scrollContainer.style.height).toBe("1000px")
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 99_999_900 })
+		})
+
+		const transformOffset = Number.parseFloat(wrapper.style.transform.match(/translateY\(([-\d.]+)px\)/)?.[1] || "0")
+		expect(transformOffset).toBeGreaterThan(0)
+		expect(transformOffset).toBeLessThanOrEqual(1000)
+	})
 })

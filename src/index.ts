@@ -7,6 +7,7 @@ export type {
 	RenderElement,
 	RenderItem,
 	ScrollState,
+	VirtualAccessibilityOptions,
 	VirtualScrollBarProps,
 	VirtualScrollBarRef
 } from "./types"

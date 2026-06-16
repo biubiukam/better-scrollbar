@@ -88,6 +88,60 @@ function getEffectiveOverscan(
 	return {before: dynamicOverscan, after: baseOverscan}
 }
 
+function getSafeBrowserScrollHeight(maxBrowserScrollHeight: number | undefined, clientHeight: number) {
+	const configuredHeight = typeof maxBrowserScrollHeight === "number" && Number.isFinite(maxBrowserScrollHeight)
+		? maxBrowserScrollHeight
+		: MAX_BROWSER_SCROLL_HEIGHT
+
+	return Math.max(Math.floor(configuredHeight), clientHeight, 1)
+}
+
+function normalizeStickyIndices(indices: number[], itemCount: number) {
+	return Array.from(new Set(indices
+		.filter((index) => Number.isInteger(index) && index >= 0 && index < itemCount)))
+		.sort((indexA, indexB) => indexA - indexB)
+}
+
+function getStickyIndicesFromGroupCounts(groupCounts: number[] | undefined, itemCount: number) {
+	if (!groupCounts?.length) {
+		return []
+	}
+
+	const stickyIndexes: number[] = []
+	let nextGroupHeaderIndex = 0
+
+	groupCounts.forEach((groupCount) => {
+		if (nextGroupHeaderIndex >= itemCount) {
+			return
+		}
+
+		stickyIndexes.push(nextGroupHeaderIndex)
+		nextGroupHeaderIndex += Math.max(Math.floor(groupCount), 0) + 1
+	})
+
+	return stickyIndexes
+}
+
+function getActiveStickyIndex(stickyIndices: number[], visibleStartIndex: number) {
+	if (visibleStartIndex < 0 || stickyIndices.length === 0) {
+		return undefined
+	}
+
+	let activeStickyIndex: number | undefined
+	for (const stickyIndex of stickyIndices) {
+		if (stickyIndex > visibleStartIndex) {
+			break
+		}
+		activeStickyIndex = stickyIndex
+	}
+
+	return activeStickyIndex
+}
+
+function isGridRole(role: string) {
+	return role === "grid" || role === "table" || role === "treegrid"
+}
+
 const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrollBarProps>>((props, ref) => {
 	const {
 		onScrollStart,
@@ -111,6 +165,10 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		followOutput = false,
 		followOutputThreshold = 1,
 		preserveItemState = false,
+		stickyIndices,
+		groupCounts,
+		accessibility = false,
+		maxBrowserScrollHeight,
 		onItemsRendered,
 		scrollBarSize = 6,
 		scrollBarHidden = false,
@@ -243,6 +301,66 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		})
 	}, [clientHeight, effectiveOverscan, heightIndex, isVirtual, scrollState.y, totalItemCount])
 
+	const normalizedStickyIndices = useMemo(() => {
+		return normalizeStickyIndices([
+			...(stickyIndices || []),
+			...getStickyIndicesFromGroupCounts(groupCounts, totalItemCount)
+		], totalItemCount)
+	}, [groupCounts, stickyIndices, totalItemCount])
+
+	const activeStickyIndex = useMemo(() => {
+		return getActiveStickyIndex(normalizedStickyIndices, visibleStartIndex)
+	}, [normalizedStickyIndices, visibleStartIndex])
+
+	const accessibilityOptions = useMemo(() => {
+		if (!accessibility) {
+			return null
+		}
+
+		const options = typeof accessibility === "object" ? accessibility : {}
+		const role = options.role || "list"
+		const rowCount = options.rowCount ?? totalItemCount
+		const itemRole = options.itemRole || (isGridRole(role) ? "row" : role === "listbox" ? "option" : "listitem")
+
+		return {
+			role,
+			label: options.label,
+			rowCount,
+			itemRole
+		}
+	}, [accessibility, totalItemCount])
+
+	const wrapperAccessibilityProps = useMemo((): React.HTMLAttributes<HTMLDivElement> => {
+		if (!accessibilityOptions) {
+			return {}
+		}
+
+		return {
+			role: accessibilityOptions.role,
+			"aria-label": accessibilityOptions.label,
+			...(isGridRole(accessibilityOptions.role) ? {"aria-rowcount": accessibilityOptions.rowCount} : {})
+		}
+	}, [accessibilityOptions])
+
+	const getItemAccessibilityProps = useCallback((index: number): React.HTMLAttributes<HTMLElement> => {
+		if (!accessibilityOptions) {
+			return {}
+		}
+
+		if (isGridRole(accessibilityOptions.role)) {
+			return {
+				role: accessibilityOptions.itemRole,
+				"aria-rowindex": index + 1
+			}
+		}
+
+		return {
+			role: accessibilityOptions.itemRole,
+			"aria-posinset": index + 1,
+			"aria-setsize": accessibilityOptions.rowCount
+		}
+	}, [accessibilityOptions])
+
 	useEffect(() => {
 		onItemsRendered?.({
 			startIndex: start,
@@ -262,8 +380,9 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const maxScrollHeightRef = useRef(maxScrollHeight)
 	maxScrollHeightRef.current = maxScrollHeight
 
-	const physicalScrollHeight = scrollHeight > MAX_BROWSER_SCROLL_HEIGHT
-		? Math.max(clientHeight, MAX_BROWSER_SCROLL_HEIGHT)
+	const browserScrollHeightLimit = getSafeBrowserScrollHeight(maxBrowserScrollHeight, clientHeight)
+	const physicalScrollHeight = scrollHeight > browserScrollHeightLimit
+		? Math.max(clientHeight, browserScrollHeightLimit)
 		: scrollHeight
 	const maxPhysicalScrollHeight = Math.max(physicalScrollHeight - clientHeight, 0)
 	const maxPhysicalScrollHeightRef = useRef(maxPhysicalScrollHeight)
@@ -563,6 +682,22 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	}, [collectHeight, keepInHorizontalRange, keepInVerticalRange, onUpdateScrollOffset])
 	
 	const shouldPreserveItemState = preserveItemState && !useIndexedRendering
+	const getVirtualItemProps = useCallback((index: number): React.HTMLAttributes<HTMLElement> => {
+		const isActiveSticky = index === activeStickyIndex
+		return {
+			...getItemAccessibilityProps(index),
+			...(isActiveSticky
+				? {
+					className: `${ prefixCls }-sticky-item`,
+					style: {
+						position: "sticky",
+						top: 0,
+						zIndex: 1,
+					} as React.CSSProperties
+				}
+				: {})
+		}
+	}, [activeStickyIndex, getItemAccessibilityProps, prefixCls])
 
 	const listChildren = useMemo(() => {
 		const renderedNodes: React.ReactElement[] = []
@@ -582,6 +717,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 					key={ key }
 					hidden={ hidden }
 					useWrapper={ shouldPreserveItemState }
+					itemProps={ getVirtualItemProps(index) }
 					setRef={ (ele) => setInstanceRef(key, index, ele) }
 				>
 					{ node }
@@ -594,11 +730,47 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		childNodes,
 		end,
 		getItemKey,
+		getVirtualItemProps,
 		renderItem,
 		setInstanceRef,
 		shouldPreserveItemState,
 		start,
 		totalItemCount,
+		useIndexedRendering
+	])
+
+	const stickyOverlay = useMemo(() => {
+		if (activeStickyIndex === undefined || (activeStickyIndex >= start && activeStickyIndex <= end)) {
+			return null
+		}
+
+		const node = useIndexedRendering ? renderItem?.(activeStickyIndex) : childNodes[activeStickyIndex]
+		if (!node) {
+			return null
+		}
+
+		const key = getItemKey(activeStickyIndex)
+		return (
+			<div className={ `${ prefixCls }-sticky-layer` } style={ {position: "sticky", top: 0, zIndex: 1, height: 0} }>
+				<Item
+					key={ `sticky-${ key }` }
+					useWrapper
+					setRef={ () => undefined }
+					itemProps={ getVirtualItemProps(activeStickyIndex) }
+				>
+					{ node }
+				</Item>
+			</div>
+		)
+	}, [
+		activeStickyIndex,
+		childNodes,
+		end,
+		getItemKey,
+		getVirtualItemProps,
+		prefixCls,
+		renderItem,
+		start,
 		useIndexedRendering
 	])
 
@@ -710,11 +882,13 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 					className={ clsx(`${ prefixCls }-container`) }
 					onScroll={ event => event.preventDefault() }
 				>
+					{ stickyOverlay }
 					{
 						cloneElement(
 							renderView({
 								className: clsx(`${ prefixCls }-wrapper`),
-								style: {transform: `translateY(${ physicalFillerOffset }px)`}
+								style: {transform: `translateY(${ physicalFillerOffset }px)`},
+								...wrapperAccessibilityProps
 							}),
 							{},
 							listChildren

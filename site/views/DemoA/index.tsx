@@ -4,6 +4,7 @@ import RandomHeight from "../../examplex/RandomHeight"
 import DragAndDrop from "../../examplex/DragAndDrop"
 import CustomStyles from "../../examplex/CustomStyles"
 import MillionRows from "../../examplex/MillionRows"
+import OptimizationCases from "../../examplex/OptimizationCases/OptimizationCases"
 import Container from "../../components/Container"
 import styles from "./index.module.less"
 import GithubIcon from "./Github"
@@ -38,6 +39,15 @@ function Index({theme, onThemeChange}: IndexProps) {
 						<span>GitHub</span>
 					</a>
 				</div>
+			</section>
+			<section className={ styles.layoutSection }>
+				<div className={ styles.sectionHeading }>
+					<div>
+						<h2>优化亮点案例</h2>
+						<p>五个卡片分别展示动态高度、锚点稳定、状态持久化、自适应 overscan，以及吸顶分组/ARIA/超大滚动范围，数据规模统一为 5000 万行。</p>
+					</div>
+				</div>
+				<OptimizationCases/>
 			</section>
 			<section className={ styles.layoutSection }>
 				<div className={ styles.sectionHeading }>

@@ -51,6 +51,17 @@ export interface AdaptiveOverscanOptions {
 	velocityFactor?: number
 }
 
+export interface VirtualAccessibilityOptions {
+	/** 容器语义角色，表格/网格场景建议使用 grid/table/treegrid */
+	role?: "list" | "grid" | "table" | "treegrid" | "listbox"
+	/** 容器可访问名称 */
+	label?: string
+	/** 逻辑总行数；默认使用 itemCount/children 数量 */
+	rowCount?: number
+	/** 渲染条目的语义角色；grid/table/treegrid 默认 row，list/listbox 默认 listitem/option */
+	itemRole?: string
+}
+
 // (props?: PropsWithChildren<Props>) => ReactElement | ForwardRefExoticComponent<PropsWithoutRef<Instance> & RefAttributes<PropsWithChildren<Props>>>
 
 /** 组件Props */
@@ -92,6 +103,14 @@ export interface VirtualScrollBarProps {
 	followOutputThreshold?: number
 	/** 保留 children 模式下已渲染条目的 React 状态；会渲染全部 children 并隐藏非可视项 */
 	preserveItemState?: boolean
+	/** 始终保持吸顶语义的条目索引，常用于分组头 */
+	stickyIndices?: number[]
+	/** 每组数据条数；组件按 GroupedVirtuoso 风格推导每组头所在的扁平索引 */
+	groupCounts?: number[]
+	/** 虚拟列表的可访问性语义和 ARIA 行信息 */
+	accessibility?: boolean | VirtualAccessibilityOptions
+	/** 浏览器物理滚动容器最大高度，用于超大逻辑滚动范围映射 */
+	maxBrowserScrollHeight?: number
 	/** 渲染区间变化回调 */
 	onItemsRendered?: (info: ItemsRenderedInfo) => void
 	/** 样式前缀 */
