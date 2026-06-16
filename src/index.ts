@@ -2,6 +2,7 @@ import { ScrollBar } from "./ScrollBar"
 
 export { ScrollBar }
 export type {
+	AdaptiveOverscanOptions,
 	ItemsRenderedInfo,
 	RenderElement,
 	RenderItem,

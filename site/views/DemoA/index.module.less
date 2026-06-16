@@ -1,75 +1,151 @@
 .layout {
 	width: 100%;
 	min-height: 100vh;
-	background-color: #EEEEEE;
+	padding: 32px clamp(16px, 4vw, 48px) 56px;
+}
 
-	&-header {
-		padding-bottom: 9px;
-		margin: 40px 0 30px;
-		font-size: 32px;
-		line-height: 2em;
-		font-weight: 500;
-		border-bottom: 1px solid #D6D6D6;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
+.hero {
+	width: 100%;
+	max-width: 1360px;
+	margin: 0 auto 28px;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 24px;
+}
 
-		:global {
-			a {
-				font-size: 26px;
-				color: #333333 !important;
-			}
-		}
+.heroCopy {
+	min-width: 0;
+	max-width: 760px;
+
+	h1 {
+		margin-top: 4px;
+		color: var(--site-foreground);
+		font-size: clamp(28px, 4vw, 44px);
+		line-height: 1.08;
+		font-weight: 720;
+		letter-spacing: 0;
 	}
 
-	&-wrapper, &-section {
-		width: 100%;
-		max-width: 1200px;
-		padding: 20px 0;
-		margin: 0 auto;
+	p {
+		margin-top: 12px;
+		color: var(--site-muted-foreground);
+		font-size: 15px;
+		line-height: 24px;
+	}
+}
 
-		:global {
-			a {
-				color: inherit;
-				text-decoration: none;
-			}
-		}
+.heroEyebrow {
+	color: var(--site-accent);
+	font-size: 13px;
+	line-height: 18px;
+	font-weight: 650;
+	letter-spacing: 0;
+}
+
+.heroActions {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.themeButton, .repoButton {
+	height: 36px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border: 1px solid var(--site-border-strong);
+	border-radius: var(--site-radius-control);
+	background: var(--site-card);
+	color: var(--site-card-foreground);
+	padding: 0 12px;
+	font-size: 13px;
+	line-height: 18px;
+	font-weight: 560;
+	text-decoration: none;
+	cursor: pointer;
+
+	&:hover {
+		background: var(--site-muted);
+	}
+}
+
+.repoButton {
+	svg {
+		width: 16px;
+		height: 16px;
+		color: currentColor;
+	}
+}
+
+.layoutSection {
+	width: 100%;
+	max-width: 1360px;
+	margin: 0 auto;
+}
+
+.sectionHeading {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 16px;
+
+	h2 {
+		color: var(--site-foreground);
+		font-size: 20px;
+		line-height: 28px;
+		font-weight: 680;
 	}
 
-	&-wrapper {
-		margin: 0 auto 40px auto;
+	p {
+		margin-top: 4px;
+		color: var(--site-muted-foreground);
+		font-size: 13px;
+		line-height: 20px;
 	}
 }
 
 .container {
 	width: 100%;
-	height: 560px;
-	border: 1px solid #F0F0F0;
-	margin: 0 auto;
-
-	&-wrapper {
-		width: 100%;
-		display: grid;
-		/*  声明列的宽度  */
-		grid-template-columns: repeat(2, calc(50% - 30px));
-		/*  声明行间距和列间距  */
-		grid-gap: 60px;
-		/*  声明行的高度  */
-		grid-template-rows: 560px 50%;
-	}
+	height: 640px;
+	min-width: 0;
 }
 
-.item {
+.containerWrapper {
 	width: 100%;
-	padding: 4px 10px;
-	border-top: 1px solid #F0F0F0;
-	display: flex;
-	align-items: center;
-	position: absolute;
-	left: 0;
-	top: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+	gap: 22px;
+	align-items: stretch;
+}
 
-	&:first-child {
-		border-top: none;
+@media (max-width: 768px) {
+	.layout {
+		padding: 22px 12px 36px;
+	}
+
+	.hero {
+		flex-direction: column;
+		margin-bottom: 22px;
+	}
+
+	.heroActions {
+		width: 100%;
+	}
+
+	.themeButton, .repoButton {
+		flex: 1 1 0;
+	}
+
+	.containerWrapper {
+		grid-template-columns: 1fr;
+	}
+
+	.container {
+		height: auto;
+		min-height: 0;
 	}
 }

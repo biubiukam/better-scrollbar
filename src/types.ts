@@ -42,6 +42,15 @@ export interface ItemsRenderedInfo {
 
 export type RenderItem = (index: number) => ReactElement
 
+export interface AdaptiveOverscanOptions {
+	/** 最小 overscan 条数，默认使用 overscan */
+	min?: number
+	/** 最大 overscan 条数，默认至少为 overscan */
+	max?: number
+	/** 按单次滚动距离放大的系数 */
+	velocityFactor?: number
+}
+
 // (props?: PropsWithChildren<Props>) => ReactElement | ForwardRefExoticComponent<PropsWithoutRef<Instance> & RefAttributes<PropsWithChildren<Props>>>
 
 /** 组件Props */
@@ -73,6 +82,16 @@ export interface VirtualScrollBarProps {
 	estimatedItemHeight?: number
 	/** 可视区域外额外渲染的条目数量 */
 	overscan?: number
+	/** 根据滚动方向和滚动距离动态扩大前置/后置渲染范围 */
+	adaptiveOverscan?: boolean | AdaptiveOverscanOptions
+	/** 数据插入或测量变化时保持当前可见条目锚定 */
+	maintainVisibleContentPosition?: boolean
+	/** 已在底部时，追加数据后继续贴住底部 */
+	followOutput?: boolean
+	/** 判断“已在底部”的像素阈值 */
+	followOutputThreshold?: number
+	/** 保留 children 模式下已渲染条目的 React 状态；会渲染全部 children 并隐藏非可视项 */
+	preserveItemState?: boolean
 	/** 渲染区间变化回调 */
 	onItemsRendered?: (info: ItemsRenderedInfo) => void
 	/** 样式前缀 */

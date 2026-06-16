@@ -14,9 +14,16 @@ import useHeights from "./hooks/useHeights"
 import VerticalScrollBar from "./components/VerticalScrollBar"
 import HorizontalScrollBar from "./components/HorizontalScrollBar"
 import { getSpinSize } from "./scrollUtil"
-import { ScrollOffset, ScrollState, VirtualScrollBarProps, VirtualScrollBarRef, ScrollBarRef } from "./types"
+import {
+	AdaptiveOverscanOptions,
+	ScrollOffset,
+	ScrollState,
+	VirtualScrollBarProps,
+	VirtualScrollBarRef,
+	ScrollBarRef
+} from "./types"
 import useResizeObserver from "./hooks/useResizeObserver"
-import { createVirtualHeightIndex } from "./virtualRange"
+import { createVirtualHeightIndex, VirtualOverscanRange } from "./virtualRange"
 import clsx from "clsx"
 import {
 	renderViewDefault,
@@ -28,6 +35,58 @@ import {
 
 type ScrollOffsetUpdater = number | ((preOffset: number) => number)
 const MAX_BROWSER_SCROLL_HEIGHT = 10_000_000
+type ScrollDirection = -1 | 0 | 1
+interface ScrollAnchorSnapshot {
+	key: React.Key
+	index: number
+	offsetWithin: number
+	scrollY: number
+	scrollHeight: number
+	maxScrollHeight: number
+	itemCount: number
+}
+
+function toSafeOverscan(value: number) {
+	return Math.max(Math.floor(value), 0)
+}
+
+function getAdaptiveOverscanOptions(
+	adaptiveOverscan: VirtualScrollBarProps["adaptiveOverscan"],
+	baseOverscan: number
+): Required<AdaptiveOverscanOptions> | null {
+	if (!adaptiveOverscan) {
+		return null
+	}
+
+	const options = typeof adaptiveOverscan === "object" ? adaptiveOverscan : {}
+	const min = options.min === undefined ? baseOverscan : toSafeOverscan(options.min)
+	const max = Math.max(options.max === undefined ? Math.max(baseOverscan, min) : toSafeOverscan(options.max), min)
+	const velocityFactor = options.velocityFactor === undefined ? 0.02 : Math.max(options.velocityFactor, 0)
+
+	return {min, max, velocityFactor}
+}
+
+function getEffectiveOverscan(
+	baseOverscan: number,
+	adaptiveOptions: Required<AdaptiveOverscanOptions> | null,
+	direction: ScrollDirection,
+	delta: number
+): number | VirtualOverscanRange {
+	if (!adaptiveOptions || direction === 0 || delta <= 0) {
+		return baseOverscan
+	}
+
+	const dynamicOverscan = Math.min(
+		Math.max(baseOverscan + Math.ceil(delta * adaptiveOptions.velocityFactor), adaptiveOptions.min),
+		adaptiveOptions.max
+	)
+
+	if (direction > 0) {
+		return {before: baseOverscan, after: dynamicOverscan}
+	}
+
+	return {before: dynamicOverscan, after: baseOverscan}
+}
 
 const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrollBarProps>>((props, ref) => {
 	const {
@@ -47,6 +106,11 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		itemHeight = 20,
 		estimatedItemHeight = itemHeight,
 		overscan = 1,
+		adaptiveOverscan = false,
+		maintainVisibleContentPosition = true,
+		followOutput = false,
+		followOutputThreshold = 1,
+		preserveItemState = false,
 		onItemsRendered,
 		scrollBarSize = 6,
 		scrollBarHidden = false,
@@ -119,6 +183,19 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 
 	const clientHeight = scrollState.clientHeight || (typeof height === "number" ? height : 0)
 	const clientWidth = scrollState.clientWidth || (typeof width === "number" ? width : 0)
+	const baseOverscan = toSafeOverscan(overscan)
+	const scrollActivityRef = useRef<{direction: ScrollDirection, delta: number}>({direction: 0, delta: 0})
+	const adaptiveOverscanOptions = useMemo(() => {
+		return getAdaptiveOverscanOptions(adaptiveOverscan, baseOverscan)
+	}, [adaptiveOverscan, baseOverscan])
+	const effectiveOverscan = useMemo(() => {
+		return getEffectiveOverscan(
+			baseOverscan,
+			adaptiveOverscanOptions,
+			scrollActivityRef.current.direction,
+			scrollActivityRef.current.delta
+		)
+	}, [adaptiveOverscanOptions, baseOverscan, scrollState.isScrolling, scrollState.y])
 
 	const heightIndex = useMemo(() => {
 		return createVirtualHeightIndex({
@@ -162,9 +239,9 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		return heightIndex.getRange({
 			scrollOffset: scrollState.y,
 			viewportSize: clientHeight,
-			overscan
+			overscan: effectiveOverscan
 		})
-	}, [clientHeight, heightIndex, isVirtual, overscan, scrollState.y, totalItemCount])
+	}, [clientHeight, effectiveOverscan, heightIndex, isVirtual, scrollState.y, totalItemCount])
 
 	useEffect(() => {
 		onItemsRendered?.({
@@ -253,6 +330,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		clearTimeout(detectScrollingInterval.current)
 		
 		detectScrollingInterval.current = setTimeout(() => {
+			scrollActivityRef.current = {direction: 0, delta: 0}
 			setScrollState((preScrollState) => {
 				preScrollState.isScrolling = false
 			})
@@ -288,6 +366,11 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			const nextY = offset.y === undefined
 				? preScrollState.y
 				: keepInVerticalRange(resolveOffset(offset.y, preScrollState.y))
+			const nextYDelta = nextY - preScrollState.y
+			scrollActivityRef.current = {
+				direction: nextYDelta > 0 ? 1 : nextYDelta < 0 ? -1 : 0,
+				delta: Math.abs(nextYDelta)
+			}
 
 			preScrollState.x = nextX
 			preScrollState.y = nextY
@@ -302,6 +385,107 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	useLayoutEffect(() => {
 		syncNativeScrollOffset(scrollState.x, scrollState.y)
 	}, [physicalScrollHeight, scrollState.x, scrollState.y, syncNativeScrollOffset])
+
+	const anchorSnapshotRef = useRef<ScrollAnchorSnapshot | null>(null)
+	const anchorVersionRef = useRef<{
+		heightIndex: typeof heightIndex,
+		childKeys?: React.Key[],
+		totalItemCount: number
+	} | null>(null)
+
+	const resolveAnchorIndex = useCallback((anchor: ScrollAnchorSnapshot) => {
+		if (childKeys) {
+			return childKeys.indexOf(anchor.key)
+		}
+
+		if (anchor.index >= 0 && anchor.index < totalItemCount) {
+			return anchor.index
+		}
+
+		return -1
+	}, [childKeys, totalItemCount])
+
+	const getAnchorSnapshot = useCallback((): ScrollAnchorSnapshot | null => {
+		if (totalItemCount <= 0 || visibleStartIndex < 0) {
+			return null
+		}
+
+		return {
+			key: getItemKey(visibleStartIndex),
+			index: visibleStartIndex,
+			offsetWithin: Math.max(scrollState.y - heightIndex.getOffset(visibleStartIndex), 0),
+			scrollY: scrollState.y,
+			scrollHeight,
+			maxScrollHeight,
+			itemCount: totalItemCount
+		}
+	}, [
+		getItemKey,
+		heightIndex,
+		maxScrollHeight,
+		scrollHeight,
+		scrollState.y,
+		totalItemCount,
+		visibleStartIndex
+	])
+
+	useLayoutEffect(() => {
+		const previousAnchor = anchorSnapshotRef.current
+		const previousVersion = anchorVersionRef.current
+		const anchorVersionChanged = !previousVersion ||
+			previousVersion.heightIndex !== heightIndex ||
+			previousVersion.childKeys !== childKeys ||
+			previousVersion.totalItemCount !== totalItemCount
+
+		if (anchorVersionChanged && previousAnchor && previousAnchor.itemCount > 0 && totalItemCount > 0) {
+			const scrollOffsetStayedOnAnchor = Math.abs(scrollState.y - previousAnchor.scrollY) <= 0.5
+			const isFollowingOutput = followOutput &&
+				scrollOffsetStayedOnAnchor &&
+				scrollHeight >= previousAnchor.scrollHeight &&
+				previousAnchor.maxScrollHeight - previousAnchor.scrollY <= followOutputThreshold
+			let nextY: number | undefined
+
+			if (isFollowingOutput) {
+				nextY = maxScrollHeight
+			} else if (maintainVisibleContentPosition && scrollOffsetStayedOnAnchor) {
+				const anchorIndex = resolveAnchorIndex(previousAnchor)
+				if (anchorIndex >= 0) {
+					nextY = heightIndex.getOffset(anchorIndex) + previousAnchor.offsetWithin
+				}
+			}
+
+			if (nextY !== undefined) {
+				const safeNextY = keepInVerticalRange(nextY)
+				if (Math.abs(safeNextY - scrollState.y) > 0.5) {
+					setScrollState((preScrollState) => {
+						preScrollState.y = safeNextY
+					})
+					syncNativeScrollOffset(scrollState.x, safeNextY)
+					anchorVersionRef.current = {heightIndex, childKeys, totalItemCount}
+					return
+				}
+			}
+		}
+
+		anchorSnapshotRef.current = getAnchorSnapshot()
+		anchorVersionRef.current = {heightIndex, childKeys, totalItemCount}
+	}, [
+		childKeys,
+		followOutput,
+		followOutputThreshold,
+		getAnchorSnapshot,
+		heightIndex,
+		keepInVerticalRange,
+		maintainVisibleContentPosition,
+		maxScrollHeight,
+		resolveAnchorIndex,
+		scrollHeight,
+		scrollState.x,
+		scrollState.y,
+		setScrollState,
+		syncNativeScrollOffset,
+		totalItemCount
+	])
 
 	const onUpdateScrollState = useCallback((scrollTop: ScrollOffsetUpdater) => {
 		onUpdateScrollOffset({y: scrollTop})
@@ -378,25 +562,45 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		}
 	}, [collectHeight, keepInHorizontalRange, keepInVerticalRange, onUpdateScrollOffset])
 	
+	const shouldPreserveItemState = preserveItemState && !useIndexedRendering
+
 	const listChildren = useMemo(() => {
 		const renderedNodes: React.ReactElement[] = []
+		const renderStart = shouldPreserveItemState ? 0 : start
+		const renderEnd = shouldPreserveItemState ? totalItemCount - 1 : end
 
-		for (let index = start; index <= end; index++) {
+		for (let index = renderStart; index <= renderEnd; index++) {
 			const node = useIndexedRendering ? renderItem?.(index) : childNodes[index]
 			if (!node) {
 				continue
 			}
 
 			const key = getItemKey(index)
+			const hidden = shouldPreserveItemState && (index < start || index > end)
 			renderedNodes.push(
-				<Item key={ key } setRef={ (ele) => setInstanceRef(key, index, ele) }>
+				<Item
+					key={ key }
+					hidden={ hidden }
+					useWrapper={ shouldPreserveItemState }
+					setRef={ (ele) => setInstanceRef(key, index, ele) }
+				>
 					{ node }
 				</Item>
 			)
 		}
 
 		return renderedNodes
-	}, [childNodes, end, getItemKey, renderItem, setInstanceRef, start, useIndexedRendering])
+	}, [
+		childNodes,
+		end,
+		getItemKey,
+		renderItem,
+		setInstanceRef,
+		shouldPreserveItemState,
+		start,
+		totalItemCount,
+		useIndexedRendering
+	])
 
 	const collectScrollWidth = useCallback(() => {
 		const viewContainer = viewContainerRef.current

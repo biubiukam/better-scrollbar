@@ -8,21 +8,44 @@ import Container from "../../components/Container"
 import styles from "./index.module.less"
 import GithubIcon from "./Github"
 
-function Index() {
+interface IndexProps {
+	theme: "light" | "dark"
+	onThemeChange: () => void
+}
+
+function Index({theme, onThemeChange}: IndexProps) {
 	
 	return (
-		<div className={ styles.layout }>
-			<div className={ styles.layoutWrapper }>
-				<div className={ styles.layoutHeader }>React 版本滚动条 <a
-					href="https://github.com/kampiu/better-scrollbar"><GithubIcon/></a></div>
-				<div>
-					滚动原理参考 <a
-					href="https://github.com/malte-wessel/react-custom-scrollbars">react-custom-scrollbars</a> ，其中针对虚拟滚动以及原仓库中的issue有针对性改动。
+		<main className={ styles.layout }>
+			<section className={ styles.hero }>
+				<div className={ styles.heroCopy }>
+					<div className={ styles.heroEyebrow }>better-scrollbar</div>
+					<h1>React 虚拟滚动条</h1>
+					<p>
+						面向超大数据量的虚拟滚动演示，当前案例统一使用 5000 万行规模，并保留动态高度、拖拽、阴影和自定义渲染能力。
+					</p>
 				</div>
-			</div>
-			<div className={ styles.layoutSection }>
-				<div className={ styles.layoutHeader }>案例</div>
-				
+				<div className={ styles.heroActions }>
+					<button className={ styles.themeButton } type="button" onClick={ onThemeChange }>
+						{ theme === "dark" ? "Light" : "Dark" }
+					</button>
+					<a
+						className={ styles.repoButton }
+						href="https://github.com/kampiu/better-scrollbar"
+						aria-label="Open GitHub repository"
+					>
+						<GithubIcon/>
+						<span>GitHub</span>
+					</a>
+				</div>
+			</section>
+			<section className={ styles.layoutSection }>
+				<div className={ styles.sectionHeading }>
+					<div>
+						<h2>案例</h2>
+						<p>每个卡片都有固定展示区域，滚动指标会截断显示，避免超长数字引发页面跳动。</p>
+					</div>
+				</div>
 				<div className={ styles.containerWrapper }>
 					<Container
 						title="动态高度"
@@ -60,9 +83,8 @@ function Index() {
 						<MillionRows/>
 					</Container>
 				</div>
-			</div>
-		
-		</div>
+			</section>
+		</main>
 	)
 }
 

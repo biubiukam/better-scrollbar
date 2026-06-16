@@ -3,3 +3,437 @@
 	margin: 0;
 	box-sizing: border-box;
 }
+
+:root {
+	color-scheme: light;
+	--site-background: #F6F7F9;
+	--site-foreground: #111827;
+	--site-card: #FFFFFF;
+	--site-card-foreground: #111827;
+	--site-muted: #F3F4F6;
+	--site-muted-foreground: #6B7280;
+	--site-subtle: #FAFAFA;
+	--site-border: #E5E7EB;
+	--site-border-strong: #D1D5DB;
+	--site-accent: #2563EB;
+	--site-accent-foreground: #FFFFFF;
+	--site-accent-soft: rgba(37, 99, 235, 0.12);
+	--site-danger: #DC2626;
+	--site-danger-soft: #FEF2F2;
+	--site-warning: #D97706;
+	--site-warning-soft: #FFFBEB;
+	--site-focus-soft: #EFF6FF;
+	--site-row-alert-bg: #FFFBFA;
+	--site-row-focus-bg: #EFF6FF;
+	--site-row-warm-bg: #FFFBEB;
+	--site-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 24px rgba(15, 23, 42, 0.04);
+	--site-radius-card: 8px;
+	--site-radius-control: 6px;
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--site-background: #09090B;
+	--site-foreground: #F4F4F5;
+	--site-card: #121316;
+	--site-card-foreground: #F4F4F5;
+	--site-muted: #1F2937;
+	--site-muted-foreground: #A1A1AA;
+	--site-subtle: #18181B;
+	--site-border: #27272A;
+	--site-border-strong: #3F3F46;
+	--site-accent: #60A5FA;
+	--site-accent-foreground: #07111F;
+	--site-accent-soft: rgba(96, 165, 250, 0.16);
+	--site-danger: #F87171;
+	--site-danger-soft: rgba(248, 113, 113, 0.12);
+	--site-warning: #FBBF24;
+	--site-warning-soft: rgba(251, 191, 36, 0.12);
+	--site-focus-soft: rgba(96, 165, 250, 0.14);
+	--site-row-alert-bg: rgba(248, 113, 113, 0.10);
+	--site-row-focus-bg: rgba(96, 165, 250, 0.12);
+	--site-row-warm-bg: rgba(251, 191, 36, 0.10);
+	--site-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 32px rgba(0, 0, 0, 0.18);
+}
+
+html, body, #root {
+	min-height: 100%;
+	background: var(--site-background);
+	color: var(--site-foreground);
+}
+
+body {
+	font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+button, input {
+	font: inherit;
+}
+
+button {
+	color: inherit;
+}
+
+:root .scroll-bar-vertical-thumb,
+:root .scroll-bar-horizontal-thumb {
+	background-color: color-mix(in srgb, var(--site-foreground) 46%, transparent);
+}
+
+:root .million-wrapper,
+:root .random-million-wrapper,
+:root .shadow-million-wrapper,
+:root .drag-million-wrapper,
+:root .custom-million-wrapper {
+	min-width: 0;
+	overflow: hidden;
+	background: var(--site-card);
+	color: var(--site-card-foreground);
+}
+
+:root .million-head,
+:root .random-million-head,
+:root .shadow-million-head,
+:root .drag-million-head,
+:root .custom-million-head {
+	min-width: 0;
+	min-height: 62px;
+	border-bottom-color: var(--site-border);
+	background: var(--site-card);
+}
+
+:root .million-head > div:first-child,
+:root .random-million-head > div:first-child,
+:root .shadow-million-head > div:first-child,
+:root .drag-million-head > div:first-child,
+:root .custom-million-head > div:first-child {
+	min-width: 0;
+}
+
+:root .million-title,
+:root .random-million-title,
+:root .shadow-million-title,
+:root .drag-million-title-main,
+:root .custom-million-title {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--site-card-foreground);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-subtitle,
+:root .random-million-subtitle,
+:root .shadow-million-subtitle,
+:root .drag-million-subtitle,
+:root .custom-million-subtitle {
+	max-width: 100%;
+	overflow: hidden;
+	color: var(--site-muted-foreground);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-state,
+:root .random-million-state,
+:root .shadow-million-state,
+:root .drag-million-state,
+:root .custom-million-state {
+	min-width: 92px;
+	border-color: var(--site-border-strong);
+	background: var(--site-muted);
+	color: var(--site-muted-foreground);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+:root .million-state.is-active,
+:root .random-million-state.is-active,
+:root .shadow-million-state.is-active {
+	border-color: var(--site-accent);
+	background: var(--site-accent-soft);
+	color: var(--site-accent);
+}
+
+:root .million-metrics,
+:root .random-million-metrics {
+	border-bottom-color: var(--site-border);
+	background: var(--site-subtle);
+}
+
+:root .million-metric,
+:root .random-million-metrics > div {
+	min-height: 58px;
+	border: 1px solid var(--site-border);
+	border-radius: var(--site-radius-control);
+	background: var(--site-card);
+	padding: 8px 10px;
+}
+
+:root .million-metric span,
+:root .random-million-metrics span {
+	color: var(--site-muted-foreground);
+}
+
+:root .million-metric strong,
+:root .random-million-metrics strong {
+	min-height: 22px;
+	color: var(--site-card-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-list,
+:root .random-million-list,
+:root .shadow-million-list,
+:root .drag-million-list,
+:root .custom-million-list {
+	min-height: 0;
+	border-bottom-color: var(--site-border);
+	background: var(--site-card);
+}
+
+:root .million-row,
+:root .random-million-item,
+:root .shadow-million-item,
+:root .drag-million-item,
+:root .custom-million-item {
+	min-width: 0;
+	border-top-color: var(--site-border);
+	background: var(--site-card);
+	color: var(--site-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-row--alert,
+:root .random-million-item--alert {
+	background: var(--site-row-alert-bg);
+	border-left-color: var(--site-danger);
+}
+
+:root .million-row--focus,
+:root .random-million-item--focus,
+:root .drag-million-chosen {
+	background: var(--site-row-focus-bg);
+	border-left-color: var(--site-accent);
+}
+
+:root .million-row--warm,
+:root .random-million-item--warm {
+	background: var(--site-row-warm-bg);
+	border-left-color: var(--site-warning);
+}
+
+:root .million-row-index,
+:root .random-million-index,
+:root .shadow-million-item span:first-child,
+:root .drag-million-index,
+:root .custom-million-item span:first-child {
+	color: var(--site-card-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-row-title,
+:root .million-row-meta,
+:root .random-million-main,
+:root .drag-million-title,
+:root .drag-million-meta {
+	color: var(--site-muted-foreground);
+}
+
+:root .random-million-main span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-toolbar,
+:root .random-million-toolbar,
+:root .shadow-million-result,
+:root .drag-million-result,
+:root .custom-million-result {
+	min-height: 58px;
+	border-top-color: var(--site-border);
+	background: var(--site-card);
+	color: var(--site-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-ranges,
+:root .shadow-million-result,
+:root .drag-million-result,
+:root .custom-million-result {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	align-items: center;
+}
+
+:root .million-ranges span,
+:root .random-million-toolbar > span,
+:root .shadow-million-result > span,
+:root .drag-million-result > span,
+:root .custom-million-result > span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .shadow-million-jumps {
+	grid-column: 1 / -1;
+	margin-left: 0;
+}
+
+:root .random-million-toolbar {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	align-items: center;
+}
+
+:root .random-million-jumps {
+	grid-column: 1 / -1;
+	margin-left: 0;
+}
+
+:root .million-actions,
+:root .random-million-jumps,
+:root .shadow-million-jumps {
+	min-width: 0;
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 6px;
+}
+
+:root .million-toolbar button,
+:root .random-million-actions button,
+:root .random-million-jumps button,
+:root .shadow-million-jumps button {
+	min-width: 0;
+	border-color: var(--site-border-strong);
+	background: var(--site-card);
+	color: var(--site-card-foreground);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-toolbar button:hover,
+:root .random-million-actions button:hover,
+:root .random-million-jumps button:hover,
+:root .shadow-million-jumps button:hover {
+	border-color: var(--site-accent);
+	background: var(--site-muted);
+}
+
+:root .random-million-actions button.is-danger {
+	border-color: color-mix(in srgb, var(--site-danger) 50%, var(--site-border));
+	color: var(--site-danger);
+}
+
+:root .million-progress {
+	color: var(--site-muted-foreground);
+
+	input {
+		accent-color: var(--site-accent);
+	}
+}
+
+:root .shadow-million-top {
+	background: linear-gradient(to bottom, color-mix(in srgb, var(--site-foreground) 22%, transparent), transparent);
+}
+
+:root .shadow-million-bottom {
+	background: linear-gradient(to top, color-mix(in srgb, var(--site-foreground) 22%, transparent), transparent);
+}
+
+@media (max-width: 768px) {
+	:root .million-wrapper,
+	:root .random-million-wrapper,
+	:root .shadow-million-wrapper,
+	:root .drag-million-wrapper,
+	:root .custom-million-wrapper {
+		height: auto;
+		overflow: visible;
+	}
+
+	:root .million-list,
+	:root .random-million-list,
+	:root .shadow-million-list,
+	:root .drag-million-list,
+	:root .custom-million-list {
+		flex: none;
+	}
+
+	:root .random-million-list {
+		height: 320px;
+	}
+
+	:root .shadow-million-list {
+		height: 360px;
+	}
+
+	:root .drag-million-list,
+	:root .custom-million-list {
+		height: 390px;
+	}
+}
+
+@media (max-width: 620px) {
+	:root .million-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	:root .random-million-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	:root .random-million-metrics > div:last-child {
+		grid-column: 1 / -1;
+	}
+
+	:root .million-ranges,
+	:root .shadow-million-result,
+	:root .drag-million-result,
+	:root .custom-million-result {
+		grid-template-columns: 1fr;
+	}
+
+	:root .million-actions,
+	:root .random-million-jumps,
+	:root .shadow-million-jumps {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	:root .random-million-item {
+		grid-template-columns: minmax(0, 1fr) auto;
+		display: grid;
+	}
+
+	:root .random-million-main {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 42px;
+		gap: 8px;
+	}
+
+	:root .random-million-index {
+		min-width: 0;
+	}
+
+	:root .random-million-main span:nth-child(2) {
+		display: none;
+	}
+
+	:root .random-million-actions {
+		gap: 4px;
+
+		button {
+			width: 54px;
+			padding: 0;
+		}
+
+		button.is-danger {
+			width: 66px;
+		}
+	}
+}

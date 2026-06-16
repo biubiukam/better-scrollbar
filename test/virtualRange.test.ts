@@ -53,4 +53,24 @@ describe("virtual range index", () => {
 
 		expect(performance.now() - startedAt).toBeLessThan(120)
 	})
+
+	it("supports asymmetric overscan for direction-aware pre-rendering", () => {
+		const index = createVirtualHeightIndex({
+			itemCount: 20,
+			estimatedItemHeight: 20,
+		})
+
+		expect(index.getRange({
+			scrollOffset: 100,
+			viewportSize: 40,
+			overscan: { before: 1, after: 4 },
+		})).toEqual({
+			start: 4,
+			end: 10,
+			visibleStartIndex: 5,
+			visibleEndIndex: 6,
+			offset: 80,
+			scrollHeight: 400,
+		})
+	})
 })

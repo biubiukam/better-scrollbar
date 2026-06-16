@@ -11,8 +11,12 @@ interface ContainerProps {
 function Container({title, desc, className, children}: PropsWithChildren<ContainerProps>) {
 	return (
 		<div className={ clsx(styles.container, className) }>
-			{ title && <div className={ styles.containerHeader }>{ title }</div> }
-			{ desc && <div className={ styles.containerSection }>{ desc }</div> }
+			{ (title || desc) && (
+				<div className={ styles.containerHeader }>
+					{ title && <h3>{ title }</h3> }
+					{ desc && <p>{ desc }</p> }
+				</div>
+			) }
 			<div className={ styles.containerWrapper }>{ children }</div>
 		</div>
 	)

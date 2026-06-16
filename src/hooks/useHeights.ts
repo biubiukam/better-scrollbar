@@ -6,6 +6,7 @@ export default () => {
 	const instanceRef = useRef<Map<React.Key, HTMLElement>>(new Map())
 	const heightsRef = useRef<Map<React.Key, number>>(new Map())
 	const keyIndexRef = useRef<Map<React.Key, number>>(new Map())
+	const resizeObserverRef = useRef<Map<React.Key, ResizeObserver>>(new Map())
 	const [updatedMark, setUpdatedMark] = useState(0)
 	const collectRafRef = useRef<number>(-1)
 
@@ -20,6 +21,11 @@ export default () => {
 	const cancelRaf = useCallback(() => {
 		raf.cancel(collectRafRef.current)
 		collectRafRef.current = -1
+	}, [])
+
+	const disconnectResizeObserver = useCallback((key: React.Key) => {
+		resizeObserverRef.current.get(key)?.disconnect()
+		resizeObserverRef.current.delete(key)
 	}, [])
 
 	// 新增：检查是否需要更新
@@ -111,15 +117,23 @@ export default () => {
 	const setInstanceRef = useCallback(
 		(key: React.Key, index: number, instance: HTMLElement | null) => {
 			keyIndexRef.current.set(key, index)
+			disconnectResizeObserver(key)
 			if (instance) {
 				instanceRef.current.set(key, instance)
+				if (typeof ResizeObserver !== "undefined") {
+					const resizeObserver = new ResizeObserver(() => {
+						collectHeight(false, true)
+					})
+					resizeObserver.observe(instance)
+					resizeObserverRef.current.set(key, resizeObserver)
+				}
 				// 新元素添加时强制更新
 				collectHeight(false, true)
 			} else {
 				instanceRef.current.delete(key)
 			}
 		},
-		[collectHeight]
+		[collectHeight, disconnectResizeObserver]
 	)
 
 	const pruneHeights = useCallback((keys?: React.Key[], itemCount?: number) => {
@@ -134,6 +148,7 @@ export default () => {
 			if (removedByKey || removedByIndex) {
 				heightsRef.current.delete(key)
 				instanceRef.current.delete(key)
+				disconnectResizeObserver(key)
 				keyIndexRef.current.delete(key)
 				hasChanges = true
 			}
@@ -185,6 +200,8 @@ export default () => {
 	useEffect(() => {
 		return () => {
 			cancelRaf()
+			resizeObserverRef.current.forEach((resizeObserver) => resizeObserver.disconnect())
+			resizeObserverRef.current.clear()
 		}
 	}, [cancelRaf])
 

@@ -1,4 +1,4 @@
-import { render, act } from "@testing-library/react"
+import { render, act, fireEvent } from "@testing-library/react"
 import VirtualScrollBar, { VirtualScrollBarRef } from "../src"
 import React, { createRef } from "react"
 import { expect, describe, it, vi } from "vitest"
@@ -419,5 +419,203 @@ describe("VirtualScrollBar", () => {
 		expect(transformOffset).toBeGreaterThan(0)
 		expect(transformOffset).toBeLessThan(physicalHeight)
 		expect(document.querySelectorAll("[data-testid='deep-indexed-item']").length).toBeGreaterThan(0)
+	})
+
+	it("keeps the first visible row anchored when a measured row above it resizes", () => {
+		vi.useFakeTimers()
+		const resizeCallbacks: ResizeObserverCallback[] = []
+		const OriginalResizeObserver = window.ResizeObserver
+		class ManualResizeObserver {
+			constructor(callback: ResizeObserverCallback) {
+				resizeCallbacks.push(callback)
+			}
+
+			observe() {}
+
+			disconnect() {}
+		}
+		window.ResizeObserver = ManualResizeObserver as unknown as typeof ResizeObserver
+		const offsetHeightSpy = vi
+			.spyOn(HTMLElement.prototype, "offsetHeight", "get")
+			.mockImplementation(function getOffsetHeight(this: HTMLElement) {
+				return Number(this.getAttribute("data-height")) || 20
+			})
+		const ref = createRef<VirtualScrollBarRef>()
+		let heights = [20, 20, 20, 20, 20, 20]
+		const renderList = () => (
+			<VirtualScrollBar height={40} itemHeight={20} overscan={1} ref={ref}>
+				{heights.map((height, index) => (
+					<div key={`item-${index}`} data-height={height}>
+						item-{index}
+					</div>
+				))}
+			</VirtualScrollBar>
+		)
+		const { rerender } = render(renderList())
+
+		act(() => {
+			resizeCallbacks.forEach((callback) => callback([], {} as ResizeObserver))
+			vi.runAllTimers()
+		})
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 40 })
+			vi.runAllTimers()
+		})
+
+		heights = [20, 60, 20, 20, 20, 20]
+		rerender(renderList())
+		act(() => {
+			resizeCallbacks.forEach((callback) => callback([], {} as ResizeObserver))
+			vi.runAllTimers()
+		})
+
+		expect(ref.current?.getScrollState().y).toBe(80)
+
+		offsetHeightSpy.mockRestore()
+		window.ResizeObserver = OriginalResizeObserver
+		vi.useRealTimers()
+	})
+
+	it("keeps the same keyed row anchored when rows are prepended", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		let items = Array.from({ length: 8 }, (_, index) => `item-${index}`)
+		const renderList = () => (
+			<VirtualScrollBar
+				height={40}
+				itemHeight={20}
+				overscan={0}
+				maintainVisibleContentPosition
+				ref={ref}
+			>
+				{items.map((item) => (
+					<div key={item}>{item}</div>
+				))}
+			</VirtualScrollBar>
+		)
+		const { rerender } = render(renderList())
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 40 })
+		})
+		items = ["prepended-0", "prepended-1", ...items]
+		rerender(renderList())
+
+		expect(ref.current?.getScrollState().y).toBe(80)
+	})
+
+	it("follows appended output when already scrolled to the bottom", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		let items = Array.from({ length: 5 }, (_, index) => `item-${index}`)
+		const renderList = () => (
+			<VirtualScrollBar height={40} itemHeight={20} followOutput ref={ref}>
+				{items.map((item) => (
+					<div key={item}>{item}</div>
+				))}
+			</VirtualScrollBar>
+		)
+		const { rerender } = render(renderList())
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 60 })
+		})
+		items = [...items, "item-5"]
+		rerender(renderList())
+
+		expect(ref.current?.getScrollState().y).toBe(80)
+	})
+
+	it("keeps stateful children mounted when preserveItemState is enabled", () => {
+		function StatefulRow({ label }: { label: string }) {
+			const [value, setValue] = React.useState(label)
+			return (
+				<input
+					aria-label={label}
+					value={value}
+					style={{ height: 20 }}
+					onChange={(event) => setValue(event.target.value)}
+				/>
+			)
+		}
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar height={20} itemHeight={20} overscan={0} preserveItemState ref={ref}>
+				{Array.from({ length: 5 }, (_, index) => (
+					<StatefulRow key={`row-${index}`} label={`row-${index}`} />
+				))}
+			</VirtualScrollBar>
+		)
+		const getRowInput = (label: string) => container.querySelector(`input[aria-label='${label}']`) as HTMLInputElement
+
+		fireEvent.change(getRowInput("row-0"), { target: { value: "persisted" } })
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 60 })
+		})
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 0 })
+		})
+
+		expect(getRowInput("row-0").value).toBe("persisted")
+	})
+
+	it("expands overscan in the active scroll direction when adaptiveOverscan is enabled", () => {
+		vi.useFakeTimers()
+		const onItemsRendered = vi.fn()
+		const { container } = render(
+			<VirtualScrollBar
+				height={60}
+				itemHeight={20}
+				overscan={1}
+				adaptiveOverscan={{ max: 6, velocityFactor: 0.01 }}
+				onItemsRendered={onItemsRendered}
+			>
+				{Array.from({ length: 100 }, (_, index) => (
+					<div key={index}>{index}</div>
+				))}
+			</VirtualScrollBar>
+		)
+		const scrollContainer = container.querySelector(".scroll-bar-container") as Element
+
+		act(() => {
+			scrollContainer.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 }))
+			vi.advanceTimersByTime(20)
+		})
+		const lastRange = onItemsRendered.mock.calls.at(-1)?.[0]
+
+		expect(lastRange.endIndex - lastRange.visibleEndIndex).toBeGreaterThan(1)
+		vi.useRealTimers()
+	})
+
+	it("returns adaptive overscan to the base range after scrolling ends", () => {
+		vi.useFakeTimers()
+		const onItemsRendered = vi.fn()
+		const { container } = render(
+			<VirtualScrollBar
+				height={60}
+				itemHeight={20}
+				overscan={1}
+				adaptiveOverscan={{ max: 6, velocityFactor: 0.01 }}
+				onItemsRendered={onItemsRendered}
+			>
+				{Array.from({ length: 100 }, (_, index) => (
+					<div key={index}>{index}</div>
+				))}
+			</VirtualScrollBar>
+		)
+		const scrollContainer = container.querySelector(".scroll-bar-container") as Element
+
+		act(() => {
+			scrollContainer.dispatchEvent(new WheelEvent("wheel", { deltaY: 300 }))
+			vi.advanceTimersByTime(20)
+		})
+		expect(onItemsRendered.mock.calls.at(-1)?.[0].endIndex - onItemsRendered.mock.calls.at(-1)?.[0].visibleEndIndex)
+			.toBeGreaterThan(1)
+
+		act(() => {
+			vi.advanceTimersByTime(200)
+		})
+
+		const lastRange = onItemsRendered.mock.calls.at(-1)?.[0]
+		expect(lastRange.endIndex - lastRange.visibleEndIndex).toBe(1)
+		vi.useRealTimers()
 	})
 })

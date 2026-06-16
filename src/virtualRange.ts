@@ -7,7 +7,7 @@ export interface VirtualHeightIndexOptions {
 export interface VirtualRangeOptions {
 	scrollOffset: number
 	viewportSize: number
-	overscan: number
+	overscan: number | VirtualOverscanRange
 }
 
 export interface VirtualRangeResult {
@@ -23,6 +23,11 @@ export interface VirtualHeightIndex {
 	totalHeight: number
 	getOffset: (index: number) => number
 	getRange: (options: VirtualRangeOptions) => VirtualRangeResult
+}
+
+export interface VirtualOverscanRange {
+	before: number
+	after: number
 }
 
 function upperBound(values: number[], target: number) {
@@ -111,14 +116,22 @@ export function createVirtualHeightIndex({
 		}
 
 		const safeViewportSize = Math.max(viewportSize, 0)
-		const safeOverscan = Math.max(Math.floor(overscan), 0)
+		const safeOverscan = typeof overscan === "number"
+			? {
+				before: Math.max(Math.floor(overscan), 0),
+				after: Math.max(Math.floor(overscan), 0),
+			}
+			: {
+				before: Math.max(Math.floor(overscan.before), 0),
+				after: Math.max(Math.floor(overscan.after), 0),
+			}
 		const visibleStartIndex = findIndex(scrollOffset)
 		const visibleEndOffset = safeViewportSize > 0
 			? scrollOffset + safeViewportSize - 1
 			: scrollOffset
 		const visibleEndIndex = findIndex(visibleEndOffset)
-		const start = Math.max(visibleStartIndex - safeOverscan, 0)
-		const end = Math.min(visibleEndIndex + safeOverscan, count - 1)
+		const start = Math.max(visibleStartIndex - safeOverscan.before, 0)
+		const end = Math.min(visibleEndIndex + safeOverscan.after, count - 1)
 
 		return {
 			scrollHeight: totalHeight,
