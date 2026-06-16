@@ -1,4 +1,4 @@
-import type { CSSProperties, HTMLProps, PropsWithChildren, ReactElement } from "react"
+import type { CSSProperties, HTMLProps, Key, PropsWithChildren, ReactElement } from "react"
 
 /** 滚动状态 */
 export interface ScrollState {
@@ -40,6 +40,8 @@ export interface ItemsRenderedInfo {
 	visibleEndIndex: number
 }
 
+export type RenderItem = (index: number) => ReactElement
+
 // (props?: PropsWithChildren<Props>) => ReactElement | ForwardRefExoticComponent<PropsWithoutRef<Instance> & RefAttributes<PropsWithChildren<Props>>>
 
 /** 组件Props */
@@ -55,6 +57,12 @@ export interface VirtualScrollBarProps {
 	onScroll?: (scrollState: ScrollState) => void
 	/** 是否需要虚拟滚动 */
 	isVirtual?: boolean
+	/** 按索引渲染的数据总数，用于百万级列表避免创建完整 children 数组 */
+	itemCount?: number
+	/** 按索引惰性渲染 item；提供 itemCount 时优先使用该模式 */
+	renderItem?: RenderItem
+	/** 按索引生成稳定 key；默认使用 index */
+	itemKey?: (index: number) => Key
 	/** 外层容器样式 */
 	className?: string
 	/** 外层容器内联样式 */

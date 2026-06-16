@@ -1,92 +1,102 @@
 import React, { useCallback, useRef, useState } from "react"
 import VirtualScrollBar from "../../../src"
+import type { ItemsRenderedInfo, ScrollState, VirtualScrollBarRef } from "../../../src"
+import {
+	FIXED_MILLION_ROW_HEIGHT,
+	INITIAL_ITEMS_RENDERED,
+	MILLION_JUMP_POINTS,
+	MILLION_ROW_COUNT,
+	formatVirtualRange,
+	getFixedMillionRowHeight,
+	getJumpOffset,
+	getRenderedCount,
+	useRafScrollState
+} from "../sharedMillion"
 import "./index.less"
-import css from "dom-css"
-import type { ScrollState } from "../../../src"
-
-let uuid = 0
-const MockData = Array.from({length: 5000}, (_) => {
-	uuid++
-	return {
-		id: uuid,
-	}
-})
-
-const shadowTopStyle: React.CSSProperties = {
-	position: "absolute",
-	top: 0,
-	left: 0,
-	right: 0,
-	height: 10,
-	background: "linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 2%, rgba(0, 0, 0, 0) 100%)"
-}
-const shadowBottomStyle: React.CSSProperties = {
-	position: "absolute",
-	bottom: 0,
-	left: 0,
-	right: 0,
-	height: 10,
-	background: "linear-gradient(to top, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 100%)"
-}
 
 function Shadow() {
-	
-	const shadowTop = useRef<HTMLDivElement>({} as HTMLDivElement)
-	const shadowBottom = useRef<HTMLDivElement>({} as HTMLDivElement)
-	const [scrollState, setScrollState] = useState({
-		x: 0,
-		y: 0,
-		isScrolling: false,
-		scrollHeight: 0,
-		scrollWidth: 0,
-		clientWidth: 0,
-		clientHeight: 0
-	})
-	const [dataSource] = useState(MockData)
-	
-	const onScroll = useCallback((state: ScrollState) => {
-		setScrollState(state)
-		const shadowTopOpacity = 1 / 20 * Math.min(state.y, 20)
+	const shadowTop = useRef<HTMLDivElement>(null)
+	const shadowBottom = useRef<HTMLDivElement>(null)
+	const ref = useRef<VirtualScrollBarRef>({} as VirtualScrollBarRef)
+	const [itemsRendered, setItemsRendered] = useState<ItemsRenderedInfo>(INITIAL_ITEMS_RENDERED)
+	const [scrollState, setScrollState] = useRafScrollState()
+
+	const updateShadow = useCallback((state: ScrollState) => {
 		const bottomScrollTop = state.scrollHeight - state.clientHeight
-		const shadowBottomOpacity = 1 / 20 * (bottomScrollTop - Math.max(state.y, bottomScrollTop - 20))
+		const shadowTopOpacity = Math.min(state.y, 20) / 20
+		const shadowBottomOpacity = (bottomScrollTop - Math.max(state.y, bottomScrollTop - 20)) / 20
+
 		if (shadowTop.current) {
-			css(shadowTop.current, {opacity: shadowTopOpacity})
+			shadowTop.current.style.opacity = `${ Math.max(shadowTopOpacity, 0) }`
 		}
 		if (shadowBottom.current) {
-			css(shadowBottom.current, {opacity: shadowBottomOpacity})
+			shadowBottom.current.style.opacity = `${ Math.max(shadowBottomOpacity, 0) }`
 		}
 	}, [])
-	
-	return (
-		<div className="wrapper">
-			<div className="list">
-				<VirtualScrollBar
-					onScroll={ onScroll }
-				>
-					{
-						dataSource.map((item) => (
-							<div key={ item.id } className="item">
-								No.{ item.id }
-							</div>
-						))
-					}
-				</VirtualScrollBar>
-				<div
-					ref={ shadowTop }
-					style={ shadowTopStyle }/>
-				<div
-					ref={ shadowBottom }
-					style={ shadowBottomStyle }/>
+
+	const onScroll = useCallback((state: ScrollState) => {
+		updateShadow(state)
+		setScrollState(state)
+	}, [setScrollState, updateShadow])
+
+	const renderItem = useCallback((index: number) => {
+		return (
+			<div className="shadow-million-item" style={{height: getFixedMillionRowHeight()}}>
+				<span>#{ (index + 1).toLocaleString() }</span>
+				<span>Row group { (index % 128) + 1 }</span>
 			</div>
-			<div className="result">
-				<div className="result-item">数据量 { dataSource.length } <span
-					style={ {marginLeft: "auto"} }>{ scrollState.isScrolling ? "滚动中" : "停止滚动" }</span></div>
-				<div className="result-item">滚动位置 <span>Y: { scrollState.y }</span>
-					<span>X: { scrollState.x }</span></div>
-				<div className="result-item">滚动内容大小 <span>Width: { scrollState.scrollWidth }</span>
-					<span>Height: { scrollState.scrollHeight }</span></div>
-				<div className="result-item">视区内容大小 <span>Width: { scrollState.clientWidth }</span>
-					<span>Height: { scrollState.clientHeight }</span></div>
+		)
+	}, [])
+
+	const getItemKey = useCallback((index: number) => `shadow-million-${ index }`, [])
+
+	const jumpToRatio = useCallback((ratio: number) => {
+		ref.current?.scrollTo({
+			x: 0,
+			y: getJumpOffset(scrollState.scrollHeight, scrollState.clientHeight, ratio)
+		})
+	}, [scrollState.clientHeight, scrollState.scrollHeight])
+
+	return (
+		<div className="shadow-million-wrapper">
+			<div className="shadow-million-head">
+				<div>
+					<div className="shadow-million-title">阴影滚动条</div>
+					<div className="shadow-million-subtitle">{ MILLION_ROW_COUNT.toLocaleString() } rows / { FIXED_MILLION_ROW_HEIGHT }px fixed height</div>
+				</div>
+				<div className={ `shadow-million-state ${ scrollState.isScrolling ? "is-active" : "" }` }>
+					{ scrollState.isScrolling ? "Scrolling" : "Idle" }
+				</div>
+			</div>
+			<div className="shadow-million-list">
+				<VirtualScrollBar
+					ref={ ref }
+					itemCount={ MILLION_ROW_COUNT }
+					itemKey={ getItemKey }
+					itemHeight={ FIXED_MILLION_ROW_HEIGHT }
+					estimatedItemHeight={ FIXED_MILLION_ROW_HEIGHT }
+					overscan={ 4 }
+					renderItem={ renderItem }
+					onScroll={ onScroll }
+					onItemsRendered={ setItemsRendered }
+				/>
+				<div ref={ shadowTop } className="shadow-million-top"/>
+				<div ref={ shadowBottom } className="shadow-million-bottom"/>
+			</div>
+			<div className="shadow-million-result">
+				<span>DOM: { getRenderedCount(itemsRendered) }</span>
+				<span>Visible: { formatVirtualRange({
+					startIndex: itemsRendered.visibleStartIndex,
+					endIndex: itemsRendered.visibleEndIndex
+				}) }</span>
+				<span>Y: { Math.round(scrollState.y).toLocaleString() }</span>
+				<div className="shadow-million-jumps">
+					{ MILLION_JUMP_POINTS.map((point) => (
+						<button key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
+							{ point.label }
+						</button>
+					)) }
+				</div>
 			</div>
 		</div>
 	)

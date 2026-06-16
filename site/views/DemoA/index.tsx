@@ -3,6 +3,7 @@ import Shadow from "../../examplex/Shadow"
 import RandomHeight from "../../examplex/RandomHeight"
 import DragAndDrop from "../../examplex/DragAndDrop"
 import CustomStyles from "../../examplex/CustomStyles"
+import MillionRows from "../../examplex/MillionRows"
 import Container from "../../components/Container"
 import styles from "./index.module.less"
 import GithubIcon from "./Github"
@@ -25,31 +26,38 @@ function Index() {
 				<div className={ styles.containerWrapper }>
 					<Container
 						title="动态高度"
-						desc="满足items动态高度，支持动态修改items数量，减轻使用成本。"
+						desc="5000万行动态高度按索引惰性渲染，支持行数变化和快速定位。"
 						className={ styles.container }
 					>
 						<RandomHeight/>
 					</Container>
 					<Container
 						title="阴影滚动条"
-						desc="当滚动条隐藏场景下可通过阴影效果提示滚动区域内存在部分内容被遮挡，可通过滚动预览更多内容。"
+						desc="5000万行固定高度列表中，通过阴影提示滚动区域仍有遮挡内容。"
 						className={ styles.container }
 					>
 						<Shadow/>
 					</Container>
 					<Container
 						title="拖拽"
-						desc="结合SortableJs实现拖拽排序。"
+						desc="结合SortableJs实现虚拟窗口内拖拽，拖拽库只管理当前可见DOM。"
 						className={ styles.container }
 					>
 						<DragAndDrop/>
 					</Container>
 					<Container
 						title="高度自定义样式"
-						desc="自定义滚动容器、滚动条等。"
+						desc="5000万行下自定义滚动容器和滚动条样式，样式状态按滚动进度轻量更新。"
 						className={ styles.container }
 					>
 						<CustomStyles/>
+					</Container>
+					<Container
+						title="高性能大列表"
+						desc="构造5000万行不定高数据场景，展示惰性渲染、实时区间、DOM数量和快速跳转。"
+						className={ styles.container }
+					>
+						<MillionRows/>
 					</Container>
 				</div>
 			</div>

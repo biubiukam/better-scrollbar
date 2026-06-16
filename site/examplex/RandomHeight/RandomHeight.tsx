@@ -1,100 +1,122 @@
 import React, { useCallback, useRef, useState } from "react"
 import VirtualScrollBar from "../../../src"
+import type { ItemsRenderedInfo, VirtualScrollBarRef } from "../../../src"
+import {
+	ESTIMATED_MILLION_ROW_HEIGHT,
+	INITIAL_ITEMS_RENDERED,
+	MILLION_JUMP_POINTS,
+	MILLION_ROW_COUNT,
+	formatVirtualRange,
+	getJumpOffset,
+	getMillionRowHeight,
+	getMillionRowStatus,
+	getMillionRowTone,
+	getRenderedCount,
+	useRafScrollState
+} from "../sharedMillion"
 import "./index.less"
-import { generateRandomInteger } from "./utils"
-import type { VirtualScrollBarRef } from "../../../src"
-
-interface ItemData {
-	id: number
-	height: number
-}
-
-let uuid = 0
-const MockData: ItemData[] = Array.from({length: 5000}, (_) => {
-	uuid++
-	return {
-		id: uuid,
-		height: generateRandomInteger(30, 100)
-	}
-})
 
 function RandomHeight() {
-	
 	const ref = useRef<VirtualScrollBarRef>({} as VirtualScrollBarRef)
-	const [scrollState, setScrollState] = useState({
-		x: 0,
-		y: 0,
-		isScrolling: false,
-		scrollHeight: 0,
-		scrollWidth: 0,
-		clientWidth: 0,
-		clientHeight: 0
-	})
-	const [dataSource, setDataSource] = useState(MockData)
-	
-	const onRemove = useCallback((node: ItemData) => {
-		setDataSource(preState => {
-			return preState.filter(item => item.id !== node.id)
-		})
+	const [itemCount, setItemCount] = useState(MILLION_ROW_COUNT)
+	const [itemsRendered, setItemsRendered] = useState<ItemsRenderedInfo>(INITIAL_ITEMS_RENDERED)
+	const [scrollState, setScrollState] = useRafScrollState()
+
+	const removeAt = useCallback(() => {
+		setItemCount((count) => Math.max(count - 1, 0))
 	}, [])
-	
-	const onInsertBefore = useCallback((index: number) => {
-		const height = generateRandomInteger(30, 100)
-		const scrollY = ref.current.getScrollState().y
+
+	const insertBefore = useCallback((index: number) => {
+		const height = getMillionRowHeight(index)
+		const scrollY = ref.current?.getScrollState().y || 0
+
+		setItemCount((count) => count + 1)
 		ref.current?.scrollTo({x: 0, y: scrollY + height})
-		setDataSource(preState => {
-			uuid++
-			preState.splice(Math.max(index, 0), 0, {
-				id: uuid,
-				height
-			})
-			return [...preState]
-		})
 	}, [])
-	
-	const onInsertAfter = useCallback((index: number) => {
-		setDataSource(preState => {
-			uuid++
-			preState.splice(index + 1, 0, {
-				id: uuid,
-				height: generateRandomInteger(30, 100)
-			})
-			return [...preState]
-		})
+
+	const insertAfter = useCallback(() => {
+		setItemCount((count) => count + 1)
 	}, [])
-	
+
+	const renderItem = useCallback((index: number) => {
+		const height = getMillionRowHeight(index)
+		const rowTone = getMillionRowTone(index)
+
+		return (
+			<div className={ `random-million-item random-million-item--${ rowTone }` } style={{height}}>
+				<div className="random-million-main">
+					<span className="random-million-index">#{ (index + 1).toLocaleString() }</span>
+					<span>{ getMillionRowStatus(index) }</span>
+					<span>{ height }px</span>
+				</div>
+				<div className="random-million-actions">
+					<button type="button" className="is-danger" onClick={ removeAt }>Remove</button>
+					<button type="button" onClick={ () => insertBefore(index) }>Before</button>
+					<button type="button" onClick={ insertAfter }>After</button>
+				</div>
+			</div>
+		)
+	}, [insertAfter, insertBefore, removeAt])
+
+	const getItemKey = useCallback((index: number) => `random-million-${ index }`, [])
+
+	const jumpToRatio = useCallback((ratio: number) => {
+		ref.current?.scrollTo({
+			x: 0,
+			y: getJumpOffset(scrollState.scrollHeight, scrollState.clientHeight, ratio)
+		})
+	}, [scrollState.clientHeight, scrollState.scrollHeight])
+
 	return (
-		<div className="wrapper">
-			<div className="list">
+		<div className="random-million-wrapper">
+			<div className="random-million-head">
+				<div>
+					<div className="random-million-title">动态高度</div>
+					<div className="random-million-subtitle">{ MILLION_ROW_COUNT.toLocaleString() } rows / indexed render</div>
+				</div>
+				<div className={ `random-million-state ${ scrollState.isScrolling ? "is-active" : "" }` }>
+					{ scrollState.isScrolling ? "Scrolling" : "Idle" }
+				</div>
+			</div>
+			<div className="random-million-metrics">
+				<div>
+					<span>总行数</span>
+					<strong>{ itemCount.toLocaleString() }</strong>
+				</div>
+				<div>
+					<span>当前 DOM</span>
+					<strong>{ getRenderedCount(itemsRendered) }</strong>
+				</div>
+				<div>
+					<span>可见范围</span>
+					<strong>{ formatVirtualRange({
+						startIndex: itemsRendered.visibleStartIndex,
+						endIndex: itemsRendered.visibleEndIndex
+					}) }</strong>
+				</div>
+			</div>
+			<div className="random-million-list">
 				<VirtualScrollBar
 					ref={ ref }
+					itemCount={ itemCount }
+					itemKey={ getItemKey }
+					estimatedItemHeight={ ESTIMATED_MILLION_ROW_HEIGHT }
+					overscan={ 6 }
+					renderItem={ renderItem }
 					onScroll={ setScrollState }
-				>
-					{
-						dataSource.map((item, index) => (
-							<div key={ item.id } className="item" style={ {height: item.height} }>
-								No.{ item.id }
-								<span>
-								<div className="button error" onClick={ () => onRemove(item) }>Remove</div>
-								<div className="button primary"
-								     onClick={ () => onInsertBefore(index) }>Insert Before</div>
-								<div className="button primary"
-								     onClick={ () => onInsertAfter(index) }>Insert After</div>
-							</span>
-							</div>
-						))
-					}
-				</VirtualScrollBar>
+					onItemsRendered={ setItemsRendered }
+				/>
 			</div>
-			<div className="result">
-				<div className="result-item">数据量 { dataSource.length } <span
-					style={ {marginLeft: "auto"} }>{ scrollState.isScrolling ? "滚动中" : "停止滚动" }</span></div>
-				<div className="result-item">滚动位置 <span>Y: { scrollState.y }</span>
-					<span>X: { scrollState.x }</span></div>
-				<div className="result-item">滚动内容大小 <span>Width: { scrollState.scrollWidth }</span>
-					<span>Height: { scrollState.scrollHeight }</span></div>
-				<div className="result-item">视区内容大小 <span>Width: { scrollState.clientWidth }</span>
-					<span>Height: { scrollState.clientHeight }</span></div>
+			<div className="random-million-toolbar">
+				<span>Y: { Math.round(scrollState.y).toLocaleString() }</span>
+				<span>Height: { Math.round(scrollState.scrollHeight).toLocaleString() }</span>
+				<div className="random-million-jumps">
+					{ MILLION_JUMP_POINTS.map((point) => (
+						<button key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
+							{ point.label }
+						</button>
+					)) }
+				</div>
 			</div>
 		</div>
 	)

@@ -1,69 +1,95 @@
 import React, { useCallback, useState } from "react"
 import type { HTMLProps, PropsWithChildren } from "react"
 import VirtualScrollBar from "../../../src"
+import type { ItemsRenderedInfo, ScrollState } from "../../../src"
+import {
+	FIXED_MILLION_ROW_HEIGHT,
+	INITIAL_ITEMS_RENDERED,
+	MILLION_ROW_COUNT,
+	formatVirtualRange,
+	getRenderedCount,
+	getToneChannel
+} from "../sharedMillion"
 import "./index.less"
 
-let uuid = 0
-const dataSource = Array.from({length: 5000}, (_) => {
-	uuid++
-	return {
-		id: uuid,
-	}
-})
-
 function CustomStyles() {
-	
-	const [scrollState, setScrollState] = useState({
-		x: 0, y: 0,
-		scrollWidth: 0,
-		clientWidth: 0,
-		scrollHeight: 0,
-		clientHeight: 0,
-		isScrolling: false
-	})
-	
+	const [tone, setTone] = useState(0)
+	const [itemsRendered, setItemsRendered] = useState<ItemsRenderedInfo>(INITIAL_ITEMS_RENDERED)
+
+	const onScroll = useCallback((state: ScrollState) => {
+		const nextTone = getToneChannel(state)
+		setTone((currentTone) => currentTone === nextTone ? currentTone : nextTone)
+	}, [])
+
 	const renderThumbVertical = useCallback((props?: PropsWithChildren<HTMLProps<HTMLDivElement>>): React.ReactElement => {
-		const ptg = scrollState.y / (scrollState.scrollHeight - scrollState.clientHeight)
 		const thumbStyle = {
-			backgroundColor: `rgb(${ Math.round((ptg * 255)) }, ${ Math.round(ptg * 255) }, ${ Math.round(ptg * 255) })`
+			backgroundColor: `rgb(${ tone }, ${ tone }, ${ tone })`
 		}
+
 		return (
 			<div
 				{ ...props }
 				style={ {...props?.style, ...thumbStyle} }
 			/>
 		)
-	}, [scrollState.y, scrollState.scrollHeight, scrollState.clientHeight])
-	
+	}, [tone])
+
 	const renderView = useCallback((props?: PropsWithChildren<HTMLProps<HTMLDivElement>>): React.ReactElement => {
-		const ptg = scrollState.y / (scrollState.scrollHeight - scrollState.clientHeight)
 		const viewStyle = {
-			color: `rgb(${ Math.round((ptg * 255)) }, ${ Math.round(ptg * 255) }, ${ Math.round(ptg * 255) })`,
-			backgroundColor: `rgb(${ Math.round(255 - (ptg * 255)) }, ${ Math.round(255 - (ptg * 255)) }, ${ Math.round(255 - (ptg * 255)) })`
+			color: `rgb(${ tone }, ${ tone }, ${ tone })`,
+			backgroundColor: `rgb(${ 255 - tone }, ${ 255 - tone }, ${ 255 - tone })`
 		}
+
 		return (
 			<div
 				{ ...props }
 				style={ {...props?.style, ...viewStyle} }
 			/>
 		)
-	}, [scrollState.y, scrollState.scrollHeight, scrollState.clientHeight])
-	
+	}, [tone])
+
+	const renderItem = useCallback((index: number) => {
+		return (
+			<div className="custom-million-item" style={{height: FIXED_MILLION_ROW_HEIGHT}}>
+				<span>#{ (index + 1).toLocaleString() }</span>
+				<span>Theme sample { (index % 256) + 1 }</span>
+			</div>
+		)
+	}, [])
+
+	const getItemKey = useCallback((index: number) => `custom-million-${ index }`, [])
+
 	return (
-		<div className="custom-list">
-			<VirtualScrollBar
-				onScroll={ setScrollState }
-				renderView={ renderView }
-				renderThumbVertical={ renderThumbVertical }
-			>
-				{
-					dataSource.map((item) => (
-						<div key={ item.id } className="custom-item">
-							No.{ item.id }
-						</div>
-					))
-				}
-			</VirtualScrollBar>
+		<div className="custom-million-wrapper">
+			<div className="custom-million-head">
+				<div>
+					<div className="custom-million-title">高度自定义样式</div>
+					<div className="custom-million-subtitle">{ MILLION_ROW_COUNT.toLocaleString() } rows / tone { tone }</div>
+				</div>
+				<div className="custom-million-state">DOM { getRenderedCount(itemsRendered) }</div>
+			</div>
+			<div className="custom-million-list">
+				<VirtualScrollBar
+					itemCount={ MILLION_ROW_COUNT }
+					itemKey={ getItemKey }
+					itemHeight={ FIXED_MILLION_ROW_HEIGHT }
+					estimatedItemHeight={ FIXED_MILLION_ROW_HEIGHT }
+					overscan={ 4 }
+					renderItem={ renderItem }
+					renderView={ renderView }
+					renderThumbVertical={ renderThumbVertical }
+					onScroll={ onScroll }
+					onItemsRendered={ setItemsRendered }
+				/>
+			</div>
+			<div className="custom-million-result">
+				<span>Total: { MILLION_ROW_COUNT.toLocaleString() }</span>
+				<span>Visible: { formatVirtualRange({
+					startIndex: itemsRendered.visibleStartIndex,
+					endIndex: itemsRendered.visibleEndIndex
+				}) }</span>
+				<span>Rendered: { formatVirtualRange(itemsRendered) }</span>
+			</div>
 		</div>
 	)
 }

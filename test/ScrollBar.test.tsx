@@ -344,4 +344,80 @@ describe("VirtualScrollBar", () => {
 		expect(ref.current?.getScrollState().y).toBe(70)
 		vi.useRealTimers()
 	})
+
+	it("supports 50-million-row indexed rendering without materializing every row", () => {
+		const onItemsRendered = vi.fn()
+		const renderItem = vi.fn((index: number) => (
+			<div key={index} data-testid="indexed-item">
+				{index}
+			</div>
+		))
+		const ref = createRef<VirtualScrollBarRef>()
+
+		render(
+			<VirtualScrollBar
+				height={200}
+				itemCount={50_000_000}
+				estimatedItemHeight={20}
+				renderItem={renderItem}
+				onItemsRendered={onItemsRendered}
+				ref={ref}
+			/>
+		)
+
+		expect(ref.current?.getScrollState().scrollHeight).toBe(1_000_000_000)
+		expect(renderItem.mock.calls.length).toBeLessThan(30)
+		expect(document.querySelectorAll("[data-testid='indexed-item']")).toHaveLength(11)
+		expect(onItemsRendered).toHaveBeenLastCalledWith({
+			startIndex: 0,
+			endIndex: 10,
+			visibleStartIndex: 0,
+			visibleEndIndex: 9
+		})
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 999_999_000 })
+		})
+
+		expect(onItemsRendered).toHaveBeenLastCalledWith({
+			startIndex: 49_999_949,
+			endIndex: 49_999_960,
+			visibleStartIndex: 49_999_950,
+			visibleEndIndex: 49_999_959
+		})
+		expect(renderItem).toHaveBeenCalledWith(49_999_950)
+		expect(renderItem.mock.calls.length).toBeLessThan(60)
+	})
+
+	it("keeps deep virtual rows inside browser-safe layout coordinates", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar
+				height={200}
+				itemCount={50_000_000}
+				estimatedItemHeight={20}
+				renderItem={(index) => (
+					<div key={index} data-testid="deep-indexed-item">
+						{index}
+					</div>
+				)}
+				ref={ref}
+			/>
+		)
+		const scrollContainer = container.querySelector(".scroll-bar-container") as HTMLElement
+		const wrapper = container.querySelector(".scroll-bar-wrapper") as HTMLElement
+		const physicalHeight = Number.parseFloat(scrollContainer.style.height)
+
+		expect(ref.current?.getScrollState().scrollHeight).toBe(1_000_000_000)
+		expect(physicalHeight).toBeLessThan(1_000_000_000)
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 999_999_000 })
+		})
+
+		const transformOffset = Number.parseFloat(wrapper.style.transform.match(/translateY\(([-\d.]+)px\)/)?.[1] || "0")
+		expect(transformOffset).toBeGreaterThan(0)
+		expect(transformOffset).toBeLessThan(physicalHeight)
+		expect(document.querySelectorAll("[data-testid='deep-indexed-item']").length).toBeGreaterThan(0)
+	})
 })

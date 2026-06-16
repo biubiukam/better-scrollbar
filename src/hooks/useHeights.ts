@@ -5,6 +5,7 @@ import raf from "../raf"
 export default () => {
 	const instanceRef = useRef<Map<React.Key, HTMLElement>>(new Map())
 	const heightsRef = useRef<Map<React.Key, number>>(new Map())
+	const keyIndexRef = useRef<Map<React.Key, number>>(new Map())
 	const [updatedMark, setUpdatedMark] = useState(0)
 	const collectRafRef = useRef<number>(-1)
 
@@ -108,8 +109,8 @@ export default () => {
 	)
 
 	const setInstanceRef = useCallback(
-		(item: React.ReactElement, instance: HTMLElement | null) => {
-			const key = item?.key as React.Key
+		(key: React.Key, index: number, instance: HTMLElement | null) => {
+			keyIndexRef.current.set(key, index)
 			if (instance) {
 				instanceRef.current.set(key, instance)
 				// 新元素添加时强制更新
@@ -121,14 +122,19 @@ export default () => {
 		[collectHeight]
 	)
 
-	const pruneHeights = useCallback((keys: React.Key[]) => {
-		const keySet = new Set(keys)
+	const pruneHeights = useCallback((keys?: React.Key[], itemCount?: number) => {
+		const keySet = keys ? new Set(keys) : undefined
 		let hasChanges = false
 
 		heightsRef.current.forEach((_, key) => {
-			if (!keySet.has(key)) {
+			const index = keyIndexRef.current.get(key)
+			const removedByKey = keySet ? !keySet.has(key) : false
+			const removedByIndex = itemCount !== undefined && index !== undefined && index >= itemCount
+
+			if (removedByKey || removedByIndex) {
 				heightsRef.current.delete(key)
 				instanceRef.current.delete(key)
+				keyIndexRef.current.delete(key)
 				hasChanges = true
 			}
 		})
@@ -138,6 +144,21 @@ export default () => {
 			setUpdatedMark((v) => v + 1)
 		}
 	}, [updateHeightsSnapshot])
+
+	const getHeightsByIndex = useCallback((itemCount?: number) => {
+		const heightsByIndex = new Map<number, number>()
+
+		heightsRef.current.forEach((height, key) => {
+			const index = keyIndexRef.current.get(key)
+			if (index === undefined || (itemCount !== undefined && index >= itemCount)) {
+				return
+			}
+
+			heightsByIndex.set(index, height)
+		})
+
+		return heightsByIndex
+	}, [])
 
 	// 新增：批量更新高度
 	const batchUpdateHeights = useCallback(
@@ -172,6 +193,7 @@ export default () => {
 		setInstanceRef,
 		collectHeight,
 		pruneHeights,
+		getHeightsByIndex,
 		batchUpdateHeights,
 		heights: heightsRef.current,
 		updatedMark
