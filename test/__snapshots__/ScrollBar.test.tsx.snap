@@ -11,7 +11,7 @@ exports[`VirtualScrollBar > matches snapshot 1`] = `
   >
     <div
       class="scroll-bar-container"
-      style="height: 400px;"
+      style="height: 400px; width: 100%;"
     >
       <div
         class="scroll-bar-wrapper"
@@ -27,58 +27,115 @@ exports[`VirtualScrollBar > matches snapshot 1`] = `
         >
           1
         </div>
+        <div
+          style="height: 50px;"
+        >
+          2
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          3
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          4
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          5
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          6
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          7
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          8
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          9
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          10
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          11
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          12
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          13
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          14
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          15
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          16
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          17
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          18
+        </div>
+        <div
+          style="height: 50px;"
+        >
+          19
+        </div>
       </div>
     </div>
   </div>
   <div
     class="scroll-bar-vertical-track"
-    style="width: 6px; right: 2px; bottom: 2px; top: 2px; border-radius: 3px;"
+    style="visibility: hidden; width: 6px; right: 2px; bottom: 2px; top: 2px; border-radius: 3px;"
   >
     <div
       class="scroll-bar-vertical-thumb"
-      style="transform: translateY(0px); height: 0px; cursor: pointer; border-radius: inherit; background-color: rgba(0, 0, 0, 0.2);"
+      style="transform: translateY(0px); height: 150px; cursor: pointer; border-radius: inherit; background-color: rgba(0, 0, 0, 0.2);"
     />
   </div>
-</div>
-`;
-
-exports[`VirtualScrollBar matches snapshot 1`] = `
-<div
-  class="scroll-bar-outer-container"
-  style="width: 600px; height: 600px;"
->
   <div
-    class="scroll-bar-inner-container"
-    style="width: 600px; height: 600px;"
+    class="scroll-bar-horizontal-track"
+    style="visibility: hidden; height: 6px; right: 2px; bottom: 2px; left: 2px; border-radius: 3px;"
   >
     <div
-      class="scroll-bar-container"
-      style="height: 400px;"
-    >
-      <div
-        class="scroll-bar-wrapper"
-        style="transform: translateY(0px);"
-      >
-        <div
-          style="height: 50px;"
-        >
-          0
-        </div>
-        <div
-          style="height: 50px;"
-        >
-          1
-        </div>
-      </div>
-    </div>
-  </div>
-  <div
-    class="scroll-bar-vertical-track"
-    style="width: 6px; right: 2px; bottom: 2px; top: 2px; border-radius: 3px;"
-  >
-    <div
-      class="scroll-bar-vertical-thumb"
-      style="transform: translateY(0px); height: 0px; cursor: pointer; border-radius: inherit; background-color: rgba(0, 0, 0, 0.2);"
+      class="scroll-bar-horizontal-thumb"
+      style="transform: translateX(0px); width: 100px; cursor: pointer; border-radius: inherit; background-color: rgba(0, 0, 0, 0.2);"
     />
   </div>
 </div>

@@ -1,6 +1,7 @@
 import React, {
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	Children, forwardRef, useImperativeHandle, cloneElement
@@ -11,15 +12,20 @@ import { useImmer } from "use-immer"
 import { Item } from "./components/Item"
 import useHeights from "./hooks/useHeights"
 import VerticalScrollBar from "./components/VerticalScrollBar"
+import HorizontalScrollBar from "./components/HorizontalScrollBar"
 import { getSpinSize } from "./scrollUtil"
 import { ScrollOffset, ScrollState, VirtualScrollBarProps, VirtualScrollBarRef, ScrollBarRef } from "./types"
 import useResizeObserver from "./hooks/useResizeObserver"
 import clsx from "clsx"
 import {
 	renderViewDefault,
+	renderTrackHorizontalDefault,
 	renderTrackVerticalDefault,
+	renderThumbHorizontalDefault,
 	renderThumbVerticalDefault
 } from "./defaultRenderElements"
+
+type ScrollOffsetUpdater = number | ((preOffset: number) => number)
 
 const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrollBarProps>>((props, ref) => {
 	const {
@@ -29,17 +35,22 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		children,
 		width,
 		height,
+		style,
 		className,
 		prefixCls = "scroll-bar",
+		isVirtual = true,
 		itemHeight = 20,
+		estimatedItemHeight = itemHeight,
+		overscan = 1,
+		onItemsRendered,
 		scrollBarSize = 6,
 		scrollBarHidden = false,
 		scrollBarAutoHideTimeout = 1000,
 		renderView = renderViewDefault,
+		renderTrackHorizontal = renderTrackHorizontalDefault,
 		renderTrackVertical = renderTrackVerticalDefault,
+		renderThumbHorizontal = renderThumbHorizontalDefault,
 		renderThumbVertical = renderThumbVerticalDefault,
-		// renderThumbHorizontal = renderThumbHorizontalDefault,
-		// renderTrackHorizontal = renderTrackHorizontalDefault
 	} = props
 	
 	const childNodes = useMemo(() => {
@@ -52,7 +63,8 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const scrollContainerRef = useRef<HTMLDivElement>({} as HTMLDivElement)
 	// 滚动条
 	const verticalScrollBarInstance = useRef<ScrollBarRef>({} as ScrollBarRef)
-	const {setInstanceRef, collectHeight, heights, updatedMark} = useHeights()
+	const horizontalScrollBarInstance = useRef<ScrollBarRef>({} as ScrollBarRef)
+	const {setInstanceRef, collectHeight, pruneHeights, heights, updatedMark} = useHeights()
 	
 	const [scrollState, setScrollState] = useImmer<ScrollState>({
 		x: 0,
@@ -70,52 +82,105 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			preScrollState.clientWidth = newSize.width
 		})
 	})
+
+	const childKeys = useMemo(() => {
+		return childNodes.map((node) => node?.key as React.Key)
+	}, [childNodes])
+
+	useLayoutEffect(() => {
+		pruneHeights(childKeys)
+	}, [childKeys, pruneHeights])
+
+	const clientHeight = scrollState.clientHeight || (typeof height === "number" ? height : 0)
+	const clientWidth = scrollState.clientWidth || (typeof width === "number" ? width : 0)
 	
-	const {scrollHeight, start, end, offset: fillerOffset} = useMemo(() => {
+	const {
+		scrollHeight,
+		start,
+		end,
+		visibleStartIndex,
+		visibleEndIndex,
+		offset: fillerOffset
+	} = useMemo(() => {
 		let itemTop = 0
-		let startIndex: number | undefined
-		let startOffset: number | undefined
-		let endIndex: number | undefined
+		let visibleStart: number | undefined
+		let visibleEnd: number | undefined
+		const itemOffsets: number[] = []
+		const safeEstimatedItemHeight = Math.max(estimatedItemHeight, 1)
+		const safeOverscan = Math.max(overscan, 0)
 		
 		for (let i = 0, len = childNodes.length; i < len; i++) {
 			const key = childNodes[i]?.key as React.Key
 			
 			const cacheHeight = heights.get(key)
-			const currentItemBottom = itemTop + (cacheHeight === undefined ? itemHeight : cacheHeight)
+			const itemOffset = itemTop
+			const currentItemBottom = itemTop + (cacheHeight === undefined ? safeEstimatedItemHeight : cacheHeight)
+			itemOffsets[i] = itemOffset
 			
 			// 选中范围中的顶部项目
-			if (currentItemBottom >= scrollState.y && startIndex === undefined) {
-				startIndex = i
-				startOffset = itemTop
+			if (currentItemBottom > scrollState.y && visibleStart === undefined) {
+				visibleStart = i
 			}
 			
-			// 检查范围内的项目底部。我们将渲染额外的一个项目以供运动使用
-			if (currentItemBottom > scrollState.y + scrollState.clientHeight && endIndex === undefined) {
-				endIndex = i
+			if (currentItemBottom >= scrollState.y + clientHeight && visibleEnd === undefined) {
+				visibleEnd = i
 			}
 			
 			itemTop = currentItemBottom
 		}
-		// 当滚动顶部在末尾，但数据被剪切到小计数时，将达到此值
-		if (startIndex === undefined) {
-			startIndex = 0
-			startOffset = 0
-			
-			endIndex = Math.ceil(scrollState.clientHeight / itemHeight)
+
+		const lastIndex = childNodes.length - 1
+		if (lastIndex < 0) {
+			return {
+				scrollHeight: itemTop,
+				start: 0,
+				end: -1,
+				visibleStartIndex: 0,
+				visibleEndIndex: -1,
+				offset: 0,
+			}
 		}
-		if (endIndex === undefined) {
-			endIndex = childNodes.length - 1
+
+		if (!isVirtual) {
+			return {
+				scrollHeight: itemTop,
+				start: 0,
+				end: lastIndex,
+				visibleStartIndex: 0,
+				visibleEndIndex: lastIndex,
+				offset: 0,
+			}
+		}
+
+		// 当滚动顶部在末尾，但数据被剪切到小计数时，将达到此值
+		if (visibleStart === undefined) {
+			visibleStart = 0
+			visibleEnd = Math.min(Math.ceil(clientHeight / safeEstimatedItemHeight) - 1, lastIndex)
+		}
+		if (visibleEnd === undefined) {
+			visibleEnd = lastIndex
 		}
 		
-		// 提供缓存以改善滚动体验
-		endIndex = Math.min(endIndex + 1, childNodes.length - 1)
+		const startIndex = Math.max(visibleStart - safeOverscan, 0)
+		const endIndex = Math.min(visibleEnd + safeOverscan, lastIndex)
 		return {
 			scrollHeight: itemTop,
 			start: startIndex,
 			end: endIndex,
-			offset: startOffset,
+			visibleStartIndex: visibleStart,
+			visibleEndIndex: visibleEnd,
+			offset: itemOffsets[startIndex] || 0,
 		}
-	}, [itemHeight, childNodes, scrollState.y, updatedMark, scrollState.clientHeight])
+	}, [childNodes, clientHeight, estimatedItemHeight, heights, isVirtual, overscan, scrollState.y, updatedMark])
+
+	useEffect(() => {
+		onItemsRendered?.({
+			startIndex: start,
+			endIndex: end,
+			visibleStartIndex,
+			visibleEndIndex
+		})
+	}, [end, onItemsRendered, start, visibleEndIndex, visibleStartIndex])
 	
 	useEffect(() => {
 		setScrollState((preScrollState) => {
@@ -123,11 +188,15 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		})
 	}, [scrollHeight])
 	
-	const maxScrollHeight = scrollHeight - scrollState.clientHeight
+	const maxScrollHeight = Math.max(scrollHeight - clientHeight, 0)
 	const maxScrollHeightRef = useRef(maxScrollHeight)
 	maxScrollHeightRef.current = maxScrollHeight
+
+	const maxScrollWidth = Math.max(scrollState.scrollWidth - clientWidth, 0)
+	const maxScrollWidthRef = useRef(maxScrollWidth)
+	maxScrollWidthRef.current = maxScrollWidth
 	
-	const keepInRange = useCallback((newScrollTop: number) => {
+	const keepInVerticalRange = useCallback((newScrollTop: number) => {
 		let newTop = newScrollTop
 		if (!Number.isNaN(maxScrollHeightRef.current)) {
 			newTop = Math.min(newTop, maxScrollHeightRef.current)
@@ -135,27 +204,18 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		newTop = Math.max(newTop, 0)
 		return newTop
 	}, [])
-	
-	const detectScrollingInterval = useRef<ReturnType<typeof setTimeout>>()
-	
-	const onUpdateScrollState = useCallback((scrollTop: number | ((preScrollTop: number) => number)) => {
-		setScrollState((preScrollState) => {
-			if (typeof scrollTop === "function") {
-				preScrollState.y = scrollTop(preScrollState.y)
-			} else {
-				preScrollState.y = scrollTop
-			}
-			preScrollState.isScrolling = true
-			viewContainerRef.current.scrollTop = preScrollState.y
-		})
-		
-		delayScrollStateChange()
+
+	const keepInHorizontalRange = useCallback((newScrollLeft: number) => {
+		let newLeft = newScrollLeft
+		if (!Number.isNaN(maxScrollWidthRef.current)) {
+			newLeft = Math.min(newLeft, maxScrollWidthRef.current)
+		}
+		newLeft = Math.max(newLeft, 0)
+		return newLeft
 	}, [])
 	
-	useEffect(() => {
-		onScroll?.(scrollState)
-	}, [scrollState])
-	
+	const detectScrollingInterval = useRef<ReturnType<typeof setTimeout>>()
+
 	/**
 	 * @description 延迟"是否滚动"的滚动状态变更
 	 */
@@ -168,16 +228,63 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			})
 		}, 200)
 	}, [])
+
+	useEffect(() => {
+		return () => clearTimeout(detectScrollingInterval.current)
+	}, [])
+
+	const resolveOffset = useCallback((nextOffset: ScrollOffsetUpdater, preOffset: number) => {
+		return typeof nextOffset === "function" ? nextOffset(preOffset) : nextOffset
+	}, [])
+
+	const onUpdateScrollOffset = useCallback((offset: Partial<Record<"x" | "y", ScrollOffsetUpdater>>) => {
+		setScrollState((preScrollState) => {
+			const nextX = offset.x === undefined
+				? preScrollState.x
+				: keepInHorizontalRange(resolveOffset(offset.x, preScrollState.x))
+			const nextY = offset.y === undefined
+				? preScrollState.y
+				: keepInVerticalRange(resolveOffset(offset.y, preScrollState.y))
+
+			preScrollState.x = nextX
+			preScrollState.y = nextY
+			preScrollState.isScrolling = true
+
+			if (viewContainerRef.current) {
+				viewContainerRef.current.scrollLeft = nextX
+				viewContainerRef.current.scrollTop = nextY
+			}
+		})
+
+		delayScrollStateChange()
+	}, [delayScrollStateChange, keepInHorizontalRange, keepInVerticalRange, resolveOffset])
+
+	const onUpdateScrollState = useCallback((scrollTop: ScrollOffsetUpdater) => {
+		onUpdateScrollOffset({y: scrollTop})
+	}, [onUpdateScrollOffset])
+
+	const onUpdateHorizontalScrollState = useCallback((scrollLeft: ScrollOffsetUpdater) => {
+		onUpdateScrollOffset({x: scrollLeft})
+	}, [onUpdateScrollOffset])
 	
 	useEffect(() => {
-		if (scrollState.isScrolling) {
-			onScrollStart?.()
-		} else {
-			onScrollEnd?.()
+		onScroll?.(scrollState)
+	}, [scrollState, onScroll])
+
+	const prevIsScrollingRef = useRef(scrollState.isScrolling)
+	useEffect(() => {
+		if (prevIsScrollingRef.current !== scrollState.isScrolling) {
+			if (scrollState.isScrolling) {
+				onScrollStart?.()
+			} else {
+				onScrollEnd?.()
+			}
+			prevIsScrollingRef.current = scrollState.isScrolling
 		}
-	}, [scrollState.isScrolling])
+	}, [scrollState.isScrolling, onScrollEnd, onScrollStart])
 	
 	const wheelingRaf = useRef<number>(-1)
+	const wheelOffsetRef = useRef({x: 0, y: 0})
 	
 	useEffect(() => {
 		const onScroll = function (event: WheelEvent): void {
@@ -188,18 +295,35 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			const StepY = 360
 			const StepX = 360
 			
-			// 滚动方向重置以及滚动大小控制  按住 shift 时，调换滚轮方向
-			const scrollTop = event.shiftKey
-				? Math.max(Math.min(deltaX, StepX), -StepX)
-				: Math.max(Math.min(deltaY, StepY), -StepY)
+			const shouldScrollHorizontal = event.shiftKey || Math.abs(deltaX) > Math.abs(deltaY)
+			const rawScrollOffset = event.shiftKey ? (deltaX || deltaY) : (shouldScrollHorizontal ? deltaX : deltaY)
+			const scrollOffset = shouldScrollHorizontal
+				? Math.max(Math.min(rawScrollOffset, StepX), -StepX)
+				: Math.max(Math.min(rawScrollOffset, StepY), -StepY)
+
+			if (shouldScrollHorizontal) {
+				wheelOffsetRef.current.x += scrollOffset
+			} else {
+				wheelOffsetRef.current.y += scrollOffset
+			}
+
+			raf.cancel(wheelingRaf.current)
 			
 			wheelingRaf.current = raf(() => {
-				raf.cancel(wheelingRaf.current)
+				const {x: scrollLeftOffset, y: scrollTopOffset} = wheelOffsetRef.current
+				wheelOffsetRef.current = {x: 0, y: 0}
 				collectHeight()
-				
-				onUpdateScrollState((preScrollStateY) => {
-					return keepInRange(Math.max(preScrollStateY + scrollTop, 0))
-				})
+
+				if (scrollLeftOffset || scrollTopOffset) {
+					onUpdateScrollOffset({
+						...(scrollLeftOffset
+							? {x: (preScrollStateX: number) => keepInHorizontalRange(preScrollStateX + scrollLeftOffset)}
+							: {}),
+						...(scrollTopOffset
+							? {y: (preScrollStateY: number) => keepInVerticalRange(preScrollStateY + scrollTopOffset)}
+							: {})
+					})
+				}
 			})
 		}
 		const scrollContainer = scrollContainerRef.current;
@@ -208,7 +332,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			scrollContainer?.removeEventListener("wheel", onScroll)
 			raf.cancel(wheelingRaf.current)
 		}
-	}, [])
+	}, [collectHeight, keepInHorizontalRange, keepInVerticalRange, onUpdateScrollOffset])
 	
 	const listChildren = useMemo(() => {
 		return childNodes.slice(start, end + 1).map((node) => {
@@ -219,23 +343,50 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			)
 		})
 	}, [childNodes, start, end, setInstanceRef])
+
+	const collectScrollWidth = useCallback(() => {
+		const viewContainer = viewContainerRef.current
+		const scrollContainer = scrollContainerRef.current
+		const nextScrollWidth = Math.max(
+			viewContainer?.scrollWidth || 0,
+			scrollContainer?.scrollWidth || 0,
+			clientWidth
+		)
+
+		setScrollState((preScrollState) => {
+			if (preScrollState.scrollWidth !== nextScrollWidth) {
+				preScrollState.scrollWidth = nextScrollWidth
+			}
+		})
+	}, [clientWidth])
+
+	useLayoutEffect(() => {
+		collectScrollWidth()
+	}, [collectScrollWidth, listChildren, scrollHeight])
 	
 	const delayHideScrollBar = useCallback(() => {
 		verticalScrollBarInstance.current?.delayHiddenScrollBar()
+		horizontalScrollBarInstance.current?.delayHiddenScrollBar()
 	}, [])
 	
 	// 当数据大小减小时。它可能会触发本地滚动事件以适应滚动位置
 	const onFallbackScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-		const {scrollTop: newScrollTop} = event.currentTarget
-		if (newScrollTop !== scrollState.y) {
-			onUpdateScrollState(newScrollTop)
+		const {scrollLeft: newScrollLeft, scrollTop: newScrollTop} = event.currentTarget
+		if (newScrollLeft !== scrollState.x || newScrollTop !== scrollState.y) {
+			onUpdateScrollOffset({
+				x: newScrollLeft,
+				y: newScrollTop
+			})
 		}
-	}, [scrollState])
+	}, [onUpdateScrollOffset, scrollState.x, scrollState.y])
 	
 	useImperativeHandle(ref, (): VirtualScrollBarRef => {
 		return {
 			scrollTo(offset: ScrollOffset) {
-				onUpdateScrollState(offset.y)
+				onUpdateScrollOffset({
+					x: offset.x,
+					y: offset.y
+				})
 			},
 			getScrollState() {
 				return scrollState
@@ -249,20 +400,41 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 				})
 			}
 		}
-	})
+	}, [onUpdateScrollOffset, scrollState])
+
+	const outerStyle: React.CSSProperties = {...style}
+	if (width !== undefined) {
+		outerStyle.width = width
+	}
+	if (height !== undefined) {
+		outerStyle.height = height
+	}
+
+	const viewContainerStyle: React.CSSProperties = {}
+	if (width !== undefined) {
+		viewContainerStyle.width = width
+	}
+	if (height !== undefined) {
+		viewContainerStyle.height = height
+	}
+
+	const scrollContainerStyle: React.CSSProperties = {
+		height: scrollHeight,
+		width: scrollState.scrollWidth > clientWidth ? scrollState.scrollWidth : "100%"
+	}
 	
 	return (
-		<div style={ {width, height} } className={ clsx(className, `${ prefixCls }-outer-container`) }>
+		<div style={ outerStyle } className={ clsx(className, `${ prefixCls }-outer-container`) }>
 			<div
 				ref={ viewContainerRef }
-				style={ {width, height} }
+				style={ viewContainerStyle }
 				className={ clsx(`${ prefixCls }-inner-container`) }
 				onMouseEnter={ delayHideScrollBar }
 				onScroll={ onFallbackScroll }
 			>
 				<div
 					ref={ scrollContainerRef }
-					style={ {height: scrollHeight} }
+					style={ scrollContainerStyle }
 					className={ clsx(`${ prefixCls }-container`) }
 					onScroll={ event => event.preventDefault() }
 				>
@@ -283,7 +455,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 				ref={ verticalScrollBarInstance }
 				hidden={ scrollBarHidden }
 				thumbSize={ {
-					height: getSpinSize(scrollState.clientHeight, scrollHeight),
+					height: getSpinSize(clientHeight, scrollHeight),
 					width: scrollBarSize
 				} }
 				renderTrack={ renderTrackVertical }
@@ -291,8 +463,24 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 				autoHideTimeout={ scrollBarAutoHideTimeout }
 				scrollState={ scrollState }
 				scrollRange={ scrollHeight }
-				containerSize={ scrollState.clientHeight }
+				containerSize={ clientHeight }
 				onScroll={ onUpdateScrollState }
+			/>
+			<HorizontalScrollBar
+				prefixCls={ prefixCls }
+				ref={ horizontalScrollBarInstance }
+				hidden={ scrollBarHidden }
+				thumbSize={ {
+					width: getSpinSize(clientWidth, scrollState.scrollWidth),
+					height: scrollBarSize
+				} }
+				renderTrack={ renderTrackHorizontal }
+				renderThumb={ renderThumbHorizontal }
+				autoHideTimeout={ scrollBarAutoHideTimeout }
+				scrollState={ scrollState }
+				scrollRange={ scrollState.scrollWidth }
+				containerSize={ clientWidth }
+				onScroll={ onUpdateHorizontalScrollState }
 			/>
 		</div>
 	)

@@ -1,5 +1,5 @@
 import { findDOMNode } from "../utils"
-import React, { useCallback, useRef, useState, useEffect, useMemo } from "react"
+import React, { useCallback, useRef, useState, useEffect } from "react"
 import raf from "../raf"
 
 export default () => {
@@ -15,9 +15,6 @@ export default () => {
 
 	// 新增：缓存上次的高度快照，避免不必要的更新
 	const lastHeightsSnapshotRef = useRef<Map<React.Key, number>>(new Map())
-
-	// 新增：只收集可见区域元素的高度
-	const visibleKeysRef = useRef<Set<React.Key>>(new Set())
 
 	const cancelRaf = useCallback(() => {
 		raf.cancel(collectRafRef.current)
@@ -63,7 +60,7 @@ export default () => {
 
 				// 只遍历当前实例中的元素
 				instanceRef.current.forEach((element, key) => {
-					if (element && element.offsetParent) {
+					if (element?.isConnected) {
 						const htmlElement = findDOMNode<HTMLElement>(element)
 						const { offsetHeight } = htmlElement || {}
 
@@ -110,13 +107,8 @@ export default () => {
 		[cancelRaf, shouldUpdate, updateHeightsSnapshot]
 	)
 
-	// 新增：设置可见元素的keys（供外部调用）
-	const setVisibleKeys = useCallback((keys: React.Key[]) => {
-		visibleKeysRef.current = new Set(keys)
-	}, [])
-
 	const setInstanceRef = useCallback(
-		(item: React.ReactElement, instance: HTMLElement) => {
+		(item: React.ReactElement, instance: HTMLElement | null) => {
 			const key = item?.key as React.Key
 			if (instance) {
 				instanceRef.current.set(key, instance)
@@ -124,11 +116,28 @@ export default () => {
 				collectHeight(false, true)
 			} else {
 				instanceRef.current.delete(key)
-				heightsRef.current.delete(key)
 			}
 		},
 		[collectHeight]
 	)
+
+	const pruneHeights = useCallback((keys: React.Key[]) => {
+		const keySet = new Set(keys)
+		let hasChanges = false
+
+		heightsRef.current.forEach((_, key) => {
+			if (!keySet.has(key)) {
+				heightsRef.current.delete(key)
+				instanceRef.current.delete(key)
+				hasChanges = true
+			}
+		})
+
+		if (hasChanges) {
+			updateHeightsSnapshot()
+			setUpdatedMark((v) => v + 1)
+		}
+	}, [updateHeightsSnapshot])
 
 	// 新增：批量更新高度
 	const batchUpdateHeights = useCallback(
@@ -162,7 +171,7 @@ export default () => {
 	return {
 		setInstanceRef,
 		collectHeight,
-		setVisibleKeys,
+		pruneHeights,
 		batchUpdateHeights,
 		heights: heightsRef.current,
 		updatedMark

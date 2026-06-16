@@ -4,8 +4,13 @@ import "./index.less"
 import { generateRandomInteger } from "./utils"
 import type { VirtualScrollBarRef } from "../../../src"
 
+interface ItemData {
+	id: number
+	height: number
+}
+
 let uuid = 0
-const MockData = Array.from({length: 5000}, (_) => {
+const MockData: ItemData[] = Array.from({length: 5000}, (_) => {
 	uuid++
 	return {
 		id: uuid,
@@ -27,7 +32,7 @@ function RandomHeight() {
 	})
 	const [dataSource, setDataSource] = useState(MockData)
 	
-	const onRemove = useCallback((node) => {
+	const onRemove = useCallback((node: ItemData) => {
 		setDataSource(preState => {
 			return preState.filter(item => item.id !== node.id)
 		})
@@ -47,7 +52,7 @@ function RandomHeight() {
 		})
 	}, [])
 	
-	const onInsertAfter = useCallback((index) => {
+	const onInsertAfter = useCallback((index: number) => {
 		setDataSource(preState => {
 			uuid++
 			preState.splice(index + 1, 0, {

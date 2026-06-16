@@ -1,10 +1,10 @@
 import React from "react"
-import ReactDOM from "react-dom"
+import { createRoot } from "react-dom/client"
 import App from "./App"
 import "./styles/init.less"
 
 function boostrap() {
-	ReactDOM.render(<App/>, document.getElementById("root"))
+	createRoot(document.getElementById("root") as HTMLElement).render(<App />)
 }
 
 boostrap()

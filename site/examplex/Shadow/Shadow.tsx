@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useState } from "react"
 import VirtualScrollBar from "../../../src"
 import "./index.less"
 import css from "dom-css"
+import type { ScrollState } from "../../../src"
 
 let uuid = 0
 const MockData = Array.from({length: 5000}, (_) => {
@@ -43,7 +44,7 @@ function Shadow() {
 	})
 	const [dataSource] = useState(MockData)
 	
-	const onScroll = useCallback((state) => {
+	const onScroll = useCallback((state: ScrollState) => {
 		setScrollState(state)
 		const shadowTopOpacity = 1 / 20 * Math.min(state.y, 20)
 		const bottomScrollTop = state.scrollHeight - state.clientHeight

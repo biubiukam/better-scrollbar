@@ -1,4 +1,4 @@
-import type { HTMLProps, PropsWithChildren, ReactElement } from "react"
+import type { CSSProperties, HTMLProps, PropsWithChildren, ReactElement } from "react"
 
 /** 滚动状态 */
 export interface ScrollState {
@@ -29,6 +29,17 @@ export interface ScrollOffset {
 /** 渲染元素 */
 export type RenderElement<Props> = (props?: PropsWithChildren<Props>) => ReactElement
 
+export interface ItemsRenderedInfo {
+	/** 实际渲染的起始索引，包含 overscan */
+	startIndex: number
+	/** 实际渲染的结束索引，包含 overscan */
+	endIndex: number
+	/** 可视区域起始索引 */
+	visibleStartIndex: number
+	/** 可视区域结束索引 */
+	visibleEndIndex: number
+}
+
 // (props?: PropsWithChildren<Props>) => ReactElement | ForwardRefExoticComponent<PropsWithoutRef<Instance> & RefAttributes<PropsWithChildren<Props>>>
 
 /** 组件Props */
@@ -46,8 +57,16 @@ export interface VirtualScrollBarProps {
 	isVirtual?: boolean
 	/** 外层容器样式 */
 	className?: string
+	/** 外层容器内联样式 */
+	style?: CSSProperties
 	/** 单条数据默认高度 */
 	itemHeight?: number
+	/** 未测量数据的预估高度，优先级高于 itemHeight */
+	estimatedItemHeight?: number
+	/** 可视区域外额外渲染的条目数量 */
+	overscan?: number
+	/** 渲染区间变化回调 */
+	onItemsRendered?: (info: ItemsRenderedInfo) => void
 	/** 样式前缀 */
 	prefixCls?: string
 	/** 滚动容器宽度 */
