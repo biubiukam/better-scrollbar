@@ -13,7 +13,14 @@ export default defineConfig({
 		include: ["**/*.test.(ts|tsx)"],
 		coverage: {
 			reporter: ["text", "json", "html", "lcov"],
-			exclude: ["node_modules/", "test/", "dist/", "lib/", "es/", "site/", "coverage/"]
+			include: ["src/**/*.{ts,tsx}"],
+			exclude: ["node_modules/", "test/", "dist/", "lib/", "es/", "site/", "coverage/"],
+			thresholds: {
+				statements: 100,
+				branches: 100,
+				functions: 100,
+				lines: 100
+			}
 		},
 		testTimeout: 20000
 	},

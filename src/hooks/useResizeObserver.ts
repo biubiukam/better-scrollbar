@@ -8,11 +8,19 @@ export default (ref: MutableRefObject<HTMLDivElement>, callback: (size: { width:
 	useLayoutEffect(() => {
 		const target = ref.current
 		const resizeObserverCallback = () => {
+			/* v8 ignore next -- React sets the ref before this layout-effect observer callback */
 			const {width = 0, height = 0} = target?.getBoundingClientRect?.() || {}
 			collectRafRef.current = raf(() => {
 				callback?.({width, height})
 			})
 		}
+		if (typeof ResizeObserver === "undefined") {
+			resizeObserverCallback()
+			return () => {
+				raf.cancel(collectRafRef.current)
+			}
+		}
+
 		const timer = new ResizeObserver(resizeObserverCallback)
 		timer?.observe?.(target)
 		return () => {

@@ -49,6 +49,15 @@ export interface AdaptiveOverscanOptions {
 	max?: number
 	/** 按单次滚动距离放大的系数 */
 	velocityFactor?: number
+	/** 按像素/毫秒滚动速度放大的系数 */
+	timeFactor?: number
+}
+
+export interface OverscanRange {
+	/** 向可视区前方额外渲染的数量或像素 */
+	before: number
+	/** 向可视区后方额外渲染的数量或像素 */
+	after: number
 }
 
 export interface VirtualAccessibilityOptions {
@@ -61,6 +70,21 @@ export interface VirtualAccessibilityOptions {
 	/** 渲染条目的语义角色；grid/table/treegrid 默认 row，list/listbox 默认 listitem/option */
 	itemRole?: string
 }
+
+export type ScrollSeekPlaceholder = (index: number) => ReactElement
+
+export interface ScrollSeekOptions {
+	/** 进入占位渲染的滚动速度阈值，单位为 px/ms */
+	velocityThreshold?: number
+	/** 退出占位渲染的滚动速度阈值，默认是 velocityThreshold 的一半 */
+	exitVelocityThreshold?: number
+	/** 高速滚动时用于替代真实行的轻量占位渲染 */
+	placeholder?: ScrollSeekPlaceholder
+	/** 占位渲染状态变化回调 */
+	onChange?: (active: boolean) => void
+}
+
+export type ScrollMode = "controlled" | "native"
 
 // (props?: PropsWithChildren<Props>) => ReactElement | ForwardRefExoticComponent<PropsWithoutRef<Instance> & RefAttributes<PropsWithChildren<Props>>>
 
@@ -91,10 +115,20 @@ export interface VirtualScrollBarProps {
 	itemHeight?: number
 	/** 未测量数据的预估高度，优先级高于 itemHeight */
 	estimatedItemHeight?: number
+	/** 可保留的已测量行高数量上限，用于限制超大列表长时间滚动后的缓存内存 */
+	heightCacheLimit?: number
 	/** 可视区域外额外渲染的条目数量 */
 	overscan?: number
+	/** 可视区域外按像素额外渲染的范围，适合动态高度列表 */
+	overscanPixels?: number | OverscanRange
 	/** 根据滚动方向和滚动距离动态扩大前置/后置渲染范围 */
 	adaptiveOverscan?: boolean | AdaptiveOverscanOptions
+	/** 虚拟模式下最多渲染的条目数量；不会裁掉真实可视区 */
+	maxRenderedItems?: number
+	/** 高速滚动时使用轻量占位项，降低重行渲染成本 */
+	scrollSeek?: boolean | ScrollSeekOptions
+	/** wheel 输入模式；native 使用浏览器原生滚动管线，controlled 保持自定义滚动控制 */
+	scrollMode?: ScrollMode
 	/** 数据插入或测量变化时保持当前可见条目锚定 */
 	maintainVisibleContentPosition?: boolean
 	/** 已在底部时，追加数据后继续贴住底部 */

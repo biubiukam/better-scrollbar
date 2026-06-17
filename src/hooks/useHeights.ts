@@ -1,139 +1,271 @@
-import { findDOMNode } from "../utils"
 import React, { useCallback, useRef, useState, useEffect } from "react"
 import raf from "../raf"
+import { createVirtualHeightIndexStore } from "../virtualRange"
 
-export default () => {
+export interface UseHeightsOptions {
+	itemCount: number
+	estimatedItemHeight: number
+	heightCacheLimit?: number
+}
+
+const DEFAULT_HEIGHT_CACHE_LIMIT = 50_000
+
+function normalizeHeightCacheLimit(heightCacheLimit: number | undefined) {
+	if (heightCacheLimit === undefined) {
+		return DEFAULT_HEIGHT_CACHE_LIMIT
+	}
+
+	if (heightCacheLimit === Number.POSITIVE_INFINITY || !Number.isFinite(heightCacheLimit)) {
+		return Number.POSITIVE_INFINITY
+	}
+
+	return Math.max(Math.floor(heightCacheLimit), 0)
+}
+
+function getResizeObserverEntryHeight(entry: ResizeObserverEntry, element: HTMLElement) {
+	const contentRectHeight = entry.contentRect?.height
+	if (typeof contentRectHeight === "number" && Number.isFinite(contentRectHeight) && contentRectHeight > 0) {
+		return contentRectHeight
+	}
+
+	return element.offsetHeight
+}
+
+export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOptions) => {
+	const safeItemCount = Math.max(Math.floor(itemCount), 0)
+	const safeEstimatedItemHeight = Math.max(estimatedItemHeight, 1)
+	const safeHeightCacheLimit = normalizeHeightCacheLimit(heightCacheLimit)
 	const instanceRef = useRef<Map<React.Key, HTMLElement>>(new Map())
 	const heightsRef = useRef<Map<React.Key, number>>(new Map())
 	const keyIndexRef = useRef<Map<React.Key, number>>(new Map())
-	const resizeObserverRef = useRef<Map<React.Key, ResizeObserver>>(new Map())
+	const indexKeyRef = useRef<Map<number, React.Key>>(new Map())
+	const keyElementRef = useRef<Map<React.Key, HTMLElement>>(new Map())
+	const elementKeyRef = useRef<Map<HTMLElement, React.Key>>(new Map())
+	const resizeObserverRef = useRef<ResizeObserver | null>(null)
+	const heightIndexRef = useRef(createVirtualHeightIndexStore({
+		itemCount: safeItemCount,
+		estimatedItemHeight: safeEstimatedItemHeight,
+		maxMeasuredItems: safeHeightCacheLimit
+	}))
+	const heightIndexOptionsRef = useRef({
+		itemCount: safeItemCount,
+		estimatedItemHeight: safeEstimatedItemHeight,
+		heightCacheLimit: safeHeightCacheLimit
+	})
 	const [updatedMark, setUpdatedMark] = useState(0)
 	const collectRafRef = useRef<number>(-1)
-
-	// 新增：防抖相关状态
-	const lastUpdateTimeRef = useRef<number>(0)
-	const pendingUpdateRef = useRef<boolean>(false)
-	const DEBOUNCE_DELAY = 16 // 约60fps
-
-	// 新增：缓存上次的高度快照，避免不必要的更新
-	const lastHeightsSnapshotRef = useRef<Map<React.Key, number>>(new Map())
 
 	const cancelRaf = useCallback(() => {
 		raf.cancel(collectRafRef.current)
 		collectRafRef.current = -1
 	}, [])
 
-	const disconnectResizeObserver = useCallback((key: React.Key) => {
-		resizeObserverRef.current.get(key)?.disconnect()
-		resizeObserverRef.current.delete(key)
-	}, [])
+	const getHeightsByIndexSnapshot = useCallback((nextItemCount?: number) => {
+		const heightsByIndex = new Map<number, number>()
 
-	// 新增：检查是否需要更新
-	const shouldUpdate = useCallback(() => {
-		const currentHeights = heightsRef.current
-		const lastSnapshot = lastHeightsSnapshotRef.current
-
-		// 如果数量不同，肯定需要更新
-		if (currentHeights.size !== lastSnapshot.size) {
-			return true
-		}
-
-		// 检查是否有高度变化
-		let hasChanges = false
-		currentHeights.forEach((height, key) => {
-			if (lastSnapshot.get(key) !== height) {
-				hasChanges = true
+		heightsRef.current.forEach((height, key) => {
+			const index = keyIndexRef.current.get(key)
+			if (index === undefined || (nextItemCount !== undefined && index >= nextItemCount)) {
+				return
 			}
+
+			heightsByIndex.set(index, height)
 		})
 
+		return heightsByIndex
+	}, [])
+
+	if (
+		heightIndexOptionsRef.current.itemCount !== safeItemCount ||
+		heightIndexOptionsRef.current.estimatedItemHeight !== safeEstimatedItemHeight ||
+		heightIndexOptionsRef.current.heightCacheLimit !== safeHeightCacheLimit
+	) {
+		heightIndexRef.current.reset({
+			itemCount: safeItemCount,
+			estimatedItemHeight: safeEstimatedItemHeight,
+			measuredHeights: getHeightsByIndexSnapshot(safeItemCount),
+			maxMeasuredItems: safeHeightCacheLimit
+		})
+		heightIndexOptionsRef.current = {
+			itemCount: safeItemCount,
+			estimatedItemHeight: safeEstimatedItemHeight,
+			heightCacheLimit: safeHeightCacheLimit
+		}
+	}
+
+	const unobserveKey = useCallback((key: React.Key) => {
+		const element = keyElementRef.current.get(key)
+		if (element) {
+			resizeObserverRef.current?.unobserve?.(element)
+			keyElementRef.current.delete(key)
+			elementKeyRef.current.delete(element)
+		}
+	}, [])
+
+	const clearMeasuredIndex = useCallback((key: React.Key) => {
+		const index = keyIndexRef.current.get(key)
+		if (index !== undefined && indexKeyRef.current.get(index) === key) {
+			indexKeyRef.current.delete(index)
+			heightIndexRef.current.deleteMeasuredHeight(index)
+		}
+	}, [])
+
+	const deleteCachedHeight = useCallback((key: React.Key) => {
+		heightsRef.current.delete(key)
+		instanceRef.current.delete(key)
+		unobserveKey(key)
+		clearMeasuredIndex(key)
+		keyIndexRef.current.delete(key)
+	}, [clearMeasuredIndex, unobserveKey])
+
+	const evictHeightCacheOverflow = useCallback((protectedKey?: React.Key) => {
+		if (safeHeightCacheLimit === Number.POSITIVE_INFINITY) {
+			return false
+		}
+
+		let hasChanges = false
+		while (heightsRef.current.size > safeHeightCacheLimit) {
+			let evicted = false
+			const cachedKeys = Array.from(heightsRef.current.keys())
+
+			for (let index = 0; index < cachedKeys.length; index++) {
+				const key = cachedKeys[index]
+				if (key === protectedKey || instanceRef.current.has(key)) {
+					continue
+				}
+
+				deleteCachedHeight(key)
+				hasChanges = true
+				evicted = true
+				break
+			}
+
+			if (!evicted) {
+				break
+			}
+		}
+
 		return hasChanges
-	}, [])
+	}, [deleteCachedHeight, safeHeightCacheLimit])
 
-	// 新增：更新高度快照
-	const updateHeightsSnapshot = useCallback(() => {
-		const newSnapshot = new Map(heightsRef.current)
-		lastHeightsSnapshotRef.current = newSnapshot
-	}, [])
+	const rememberMeasuredHeight = useCallback((key: React.Key, index: number, height: number) => {
+		heightsRef.current.delete(key)
+		heightsRef.current.set(key, height)
+		heightIndexRef.current.setMeasuredHeight(index, height)
+		return evictHeightCacheOverflow(key)
+	}, [evictHeightCacheOverflow])
 
-	// 优化：带防抖的收集函数
 	const collectHeight = useCallback(
-		(sync = false, forceUpdate = false) => {
+		() => {
 			cancelRaf()
-
-			const now = Date.now()
 
 			const doCollect = () => {
 				let hasChanges = false
 
-				// 只遍历当前实例中的元素
 				instanceRef.current.forEach((element, key) => {
 					if (element?.isConnected) {
-						const htmlElement = findDOMNode<HTMLElement>(element)
-						const { offsetHeight } = htmlElement || {}
-
-						if (htmlElement && offsetHeight !== undefined) {
-							const currentHeight = heightsRef.current.get(key)
-							if (currentHeight !== offsetHeight) {
-								heightsRef.current.set(key, offsetHeight)
-								hasChanges = true
+						const { offsetHeight } = element
+						const currentHeight = heightsRef.current.get(key)
+						if (currentHeight !== offsetHeight) {
+							const index = keyIndexRef.current.get(key)
+							if (index !== undefined) {
+								rememberMeasuredHeight(key, index, offsetHeight)
 							}
+							hasChanges = true
 						}
 					}
 				})
 
-				// 只在有变化时更新状态
-				if (hasChanges || forceUpdate) {
-					if (shouldUpdate()) {
-						updateHeightsSnapshot()
-						setUpdatedMark((v) => v + 1)
-					}
+				if (hasChanges) {
+					setUpdatedMark((v) => v + 1)
 				}
-
-				lastUpdateTimeRef.current = now
-				pendingUpdateRef.current = false
 			}
 
-			if (sync) {
+			collectRafRef.current = raf(() => {
 				doCollect()
-			} else {
-				// 防抖逻辑：如果距离上次更新时间过短，则延迟执行
-				if (!forceUpdate && now - lastUpdateTimeRef.current < DEBOUNCE_DELAY) {
-					if (!pendingUpdateRef.current) {
-						pendingUpdateRef.current = true
-						collectRafRef.current = raf(() => {
-							doCollect()
-						})
-					}
-				} else {
-					collectRafRef.current = raf(() => {
-						doCollect()
-					})
-				}
-			}
+			})
 		},
-		[cancelRaf, shouldUpdate, updateHeightsSnapshot]
+		[cancelRaf, rememberMeasuredHeight]
 	)
+
+	const getResizeObserver = useCallback(() => {
+		if (resizeObserverRef.current || typeof ResizeObserver === "undefined") {
+			return resizeObserverRef.current
+		}
+
+		resizeObserverRef.current = new ResizeObserver((entries) => {
+			if (entries.length === 0) {
+				collectHeight()
+				return
+			}
+
+			let hasChanges = false
+			entries.forEach((entry) => {
+				const key = elementKeyRef.current.get(entry.target as HTMLElement)
+				if (key === undefined) {
+					return
+					}
+
+					const element = instanceRef.current.get(key)
+					/* v8 ignore start -- protects stale ResizeObserver entries during DOM detach */
+					if (!element?.isConnected) {
+						return
+					}
+					/* v8 ignore stop */
+
+					const offsetHeight = getResizeObserverEntryHeight(entry, element)
+
+				if (heightsRef.current.get(key) !== offsetHeight) {
+					const index = keyIndexRef.current.get(key)
+					if (index !== undefined) {
+						rememberMeasuredHeight(key, index, offsetHeight)
+					}
+					hasChanges = true
+				}
+			})
+
+			if (hasChanges) {
+				setUpdatedMark((v) => v + 1)
+			}
+		})
+
+		return resizeObserverRef.current
+	}, [collectHeight, rememberMeasuredHeight])
 
 	const setInstanceRef = useCallback(
 		(key: React.Key, index: number, instance: HTMLElement | null) => {
+			const previousIndex = keyIndexRef.current.get(key)
+			if (previousIndex !== undefined && previousIndex !== index && indexKeyRef.current.get(previousIndex) === key) {
+				indexKeyRef.current.delete(previousIndex)
+				heightIndexRef.current.deleteMeasuredHeight(previousIndex)
+			}
+
+			const previousKeyAtIndex = indexKeyRef.current.get(index)
+			if (previousKeyAtIndex !== undefined && previousKeyAtIndex !== key) {
+				heightIndexRef.current.deleteMeasuredHeight(index)
+			}
+
 			keyIndexRef.current.set(key, index)
-			disconnectResizeObserver(key)
+			indexKeyRef.current.set(index, key)
+			unobserveKey(key)
 			if (instance) {
 				instanceRef.current.set(key, instance)
-				if (typeof ResizeObserver !== "undefined") {
-					const resizeObserver = new ResizeObserver(() => {
-						collectHeight(false, true)
-					})
-					resizeObserver.observe(instance)
-					resizeObserverRef.current.set(key, resizeObserver)
+				keyElementRef.current.set(key, instance)
+				elementKeyRef.current.set(instance, key)
+				const resizeObserver = getResizeObserver()
+				resizeObserver?.observe(instance)
+				const cachedHeight = heightsRef.current.get(key)
+				if (cachedHeight !== undefined) {
+					rememberMeasuredHeight(key, index, cachedHeight)
+				} else if (!resizeObserver) {
+					collectHeight()
 				}
-				// 新元素添加时强制更新
-				collectHeight(false, true)
 			} else {
 				instanceRef.current.delete(key)
+				unobserveKey(key)
 			}
 		},
-		[collectHeight, disconnectResizeObserver]
+		[collectHeight, getResizeObserver, rememberMeasuredHeight, unobserveKey]
 	)
 
 	const pruneHeights = useCallback((keys?: React.Key[], itemCount?: number) => {
@@ -148,60 +280,26 @@ export default () => {
 			if (removedByKey || removedByIndex) {
 				heightsRef.current.delete(key)
 				instanceRef.current.delete(key)
-				disconnectResizeObserver(key)
+				unobserveKey(key)
+				clearMeasuredIndex(key)
 				keyIndexRef.current.delete(key)
 				hasChanges = true
 			}
 		})
 
 		if (hasChanges) {
-			updateHeightsSnapshot()
 			setUpdatedMark((v) => v + 1)
 		}
-	}, [updateHeightsSnapshot])
-
-	const getHeightsByIndex = useCallback((itemCount?: number) => {
-		const heightsByIndex = new Map<number, number>()
-
-		heightsRef.current.forEach((height, key) => {
-			const index = keyIndexRef.current.get(key)
-			if (index === undefined || (itemCount !== undefined && index >= itemCount)) {
-				return
-			}
-
-			heightsByIndex.set(index, height)
-		})
-
-		return heightsByIndex
-	}, [])
-
-	// 新增：批量更新高度
-	const batchUpdateHeights = useCallback(
-		(updates: Map<React.Key, number>) => {
-			let hasChanges = false
-
-			updates.forEach((height, key) => {
-				const currentHeight = heightsRef.current.get(key)
-				if (currentHeight !== height) {
-					heightsRef.current.set(key, height)
-					hasChanges = true
-				}
-			})
-
-			if (hasChanges) {
-				updateHeightsSnapshot()
-				setUpdatedMark((v) => v + 1)
-			}
-		},
-		[updateHeightsSnapshot]
-	)
+	}, [clearMeasuredIndex, unobserveKey])
 
 	// 清理函数
 	useEffect(() => {
 		return () => {
 			cancelRaf()
-			resizeObserverRef.current.forEach((resizeObserver) => resizeObserver.disconnect())
-			resizeObserverRef.current.clear()
+			resizeObserverRef.current?.disconnect()
+			resizeObserverRef.current = null
+			keyElementRef.current.clear()
+			elementKeyRef.current.clear()
 		}
 	}, [cancelRaf])
 
@@ -210,9 +308,7 @@ export default () => {
 		setInstanceRef,
 		collectHeight,
 		pruneHeights,
-		getHeightsByIndex,
-		batchUpdateHeights,
-		heights: heightsRef.current,
+		heightIndex: heightIndexRef.current,
 		updatedMark
 	}
 }

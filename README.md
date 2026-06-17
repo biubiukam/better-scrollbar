@@ -15,6 +15,8 @@ npm install better-scrollbar --save
 
 ## Usage
 
+For the complete user-facing API, including every prop type and default value, see [docs/virtual-scrollbar-api.md](docs/virtual-scrollbar-api.md).
+
 ```javascript
 import React, { Component } from "react"
 import ScrollBar from "better-scrollbar"
@@ -60,6 +62,43 @@ class CustomScrollBar extends Component {
   }
 }
 ```
+
+### 50 million rows
+
+```tsx
+import ScrollBar from "better-scrollbar"
+
+const ROW_COUNT = 50_000_000
+
+export default () => (
+  <ScrollBar
+    width={720}
+    height={420}
+    itemCount={ROW_COUNT}
+    estimatedItemHeight={32}
+    heightCacheLimit={50_000}
+    overscanPixels={320}
+    maxRenderedItems={500}
+    scrollMode="native"
+    adaptiveOverscan
+    scrollSeek={{ velocityThreshold: 2, exitVelocityThreshold: 0.8 }}
+    renderItem={(index) => (
+      <div key={index} style={{ height: 32 }}>
+        Row {index.toLocaleString()}
+      </div>
+    )}
+  />
+)
+```
+
+For massive logical ranges, `scrollMode="native"` stays native only while the
+browser can represent the full scroll height. When `maxBrowserScrollHeight`
+compresses the physical range, wheel input automatically uses the controlled
+path so each wheel delta still maps to the exact logical offset. `scrollSeek`
+placeholders are intentionally not measured as row heights, and
+`maxRenderedItems` also protects `isVirtual={false}` / `preserveItemState`
+from accidentally mounting very large DOM trees. Pass
+`maxRenderedItems={Infinity}` only when rendering every item is intentional.
 
 ### If you are a tree level structure, you can use the following code:
 

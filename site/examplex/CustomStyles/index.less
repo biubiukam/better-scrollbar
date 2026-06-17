@@ -51,6 +51,32 @@
 		border-bottom: 1px solid #E5E7EB;
 	}
 
+	&-toolbar {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding: 10px 14px 0;
+		background: #FFFFFF;
+
+		button {
+			min-width: 52px;
+			padding: 5px 9px;
+			border: 1px solid #D0D5DD;
+			border-radius: 6px;
+			background: #F8FAFC;
+			color: #344054;
+			font-size: 12px;
+			line-height: 16px;
+			cursor: pointer;
+
+			&:hover {
+				border-color: #98A2B3;
+				background: #EEF2F6;
+			}
+		}
+	}
+
 	&-item {
 		width: 100%;
 		display: flex;

@@ -1,5 +1,7 @@
+/* v8 ignore start -- non-browser fallback is replaced by jsdom requestAnimationFrame in tests */
 let raf = (callback: FrameRequestCallback) => +setTimeout(callback, 16)
 let caf = (num: number) => clearTimeout(num)
+/* v8 ignore stop */
 
 if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
 	raf = (callback: FrameRequestCallback) =>

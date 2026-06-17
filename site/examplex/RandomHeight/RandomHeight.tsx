@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react"
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react"
 import VirtualScrollBar from "../../../src"
 import type { ItemsRenderedInfo, VirtualScrollBarRef } from "../../../src"
 import {
@@ -18,11 +18,23 @@ import "./index.less"
 
 function RandomHeight() {
 	const ref = useRef<VirtualScrollBarRef>({} as VirtualScrollBarRef)
+	const pendingScrollYRef = useRef<number | null>(null)
 	const [itemCount, setItemCount] = useState(MILLION_ROW_COUNT)
 	const [itemsRendered, setItemsRendered] = useState<ItemsRenderedInfo>(INITIAL_ITEMS_RENDERED)
 	const [scrollState, setScrollState] = useRafScrollState()
 
+	useLayoutEffect(() => {
+		if (pendingScrollYRef.current === null) {
+			return
+		}
+
+		const nextY = pendingScrollYRef.current
+		pendingScrollYRef.current = null
+		ref.current?.scrollTo({x: 0, y: nextY})
+	}, [itemCount])
+
 	const removeAt = useCallback(() => {
+		pendingScrollYRef.current = ref.current?.getScrollState().y || 0
 		setItemCount((count) => Math.max(count - 1, 0))
 	}, [])
 
@@ -30,11 +42,12 @@ function RandomHeight() {
 		const height = getMillionRowHeight(index)
 		const scrollY = ref.current?.getScrollState().y || 0
 
+		pendingScrollYRef.current = scrollY + height
 		setItemCount((count) => count + 1)
-		ref.current?.scrollTo({x: 0, y: scrollY + height})
 	}, [])
 
 	const insertAfter = useCallback(() => {
+		pendingScrollYRef.current = ref.current?.getScrollState().y || 0
 		setItemCount((count) => count + 1)
 	}, [])
 

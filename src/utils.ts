@@ -1,5 +1,5 @@
 import React from "react"
-import ReactDOM from "react-dom"
+import * as ReactDOM from "react-dom"
 
 export function isDOM(node: any): node is HTMLElement | SVGElement {
 	return node instanceof HTMLElement || node instanceof SVGElement
@@ -16,7 +16,13 @@ export function findDOMNode<T = Element | Text>(
 	}
 
 	if (node instanceof React.Component) {
-		return ReactDOM.findDOMNode(node) as unknown as T
+		/* v8 ignore start -- React 18 compatibility path; React 19 removes findDOMNode at runtime */
+		if (typeof ReactDOM.findDOMNode === "function") {
+			return ReactDOM.findDOMNode(node) as unknown as T
+		}
+		/* v8 ignore stop */
+
+		return null
 	}
 
 	return null

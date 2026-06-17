@@ -152,7 +152,18 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 
 	useEffect(() => {
 		if (dragging) {
-			let moveRafId: number
+			let moveRafId = -1
+			let pendingDragScrollOffset: number | null = null
+
+			const flushPendingDragScroll = () => {
+				if (pendingDragScrollOffset === null) {
+					return
+				}
+
+				const nextScrollOffset = pendingDragScrollOffset
+				pendingDragScrollOffset = null
+				onScroll?.(nextScrollOffset)
+			}
 
 			const onMouseMove = (event: MouseEvent | TouchEvent) => {
 				const {
@@ -175,14 +186,17 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 					let newScrollOffset = Math.ceil(ptg * tmpEnableScrollRange)
 					newScrollOffset = Math.max(newScrollOffset, 0)
 					newScrollOffset = Math.min(newScrollOffset, tmpEnableScrollRange)
+					pendingDragScrollOffset = newScrollOffset
 
 					moveRafId = raf(() => {
-						onScroll?.(newScrollOffset)
+						flushPendingDragScroll()
 					})
 				}
 			}
 
 			const onMouseUp = () => {
+				raf.cancel(moveRafId)
+				flushPendingDragScroll()
 				setDragging(false)
 				onStopMove?.()
 			}
