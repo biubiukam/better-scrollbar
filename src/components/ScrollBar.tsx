@@ -8,13 +8,13 @@ import React, {
 	cloneElement,
 	useLayoutEffect
 } from "react"
-import raf from "../raf"
 import clsx from "clsx"
 import { getPageXY } from "../utils"
+import raf from "../raf"
 import type { ScrollBarProps, ScrollBarRef } from "../types"
 
 export interface ScrollBarComponentProps extends ScrollBarProps {
-	/** 滚动条方向 */
+	/** Scrollbar orientation. */
 	orientation: "vertical" | "horizontal"
 }
 
@@ -43,18 +43,22 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 	const trackClassName = `${prefixCls}-${orientation}-track`
 	const thumbClassName = `${prefixCls}-${orientation}-thumb`
 
-	// 拖拽状态
+	// Dragging state.
 	const [dragging, setDragging] = useState<boolean>(false)
 
-	// 当前点击滚动thumb的位置
+	// Pointer position where the current thumb drag started.
 	const [pageXY, setPageXY] = useState<number>(0)
 
-	// 记录拖拽前的位置
+	// Scrollbar offset before the current drag started.
 	const [startOffset, setStartOffset] = useState<number>(0)
 
 	// ========================= Refs =========================
 	const trackRef = useRef<HTMLDivElement | null>(null)
 	const thumbRef = useRef<HTMLDivElement | null>(null)
+	const onScrollRef = useRef(onScroll)
+	const dragScrollRafRef = useRef<number>(-1)
+	const pendingDragScrollOffsetRef = useRef<number | null>(null)
+	onScrollRef.current = onScroll
 
 	// ======================= Visible ========================
 	const [visible, setVisible] = useState(false)
@@ -81,12 +85,12 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 	}, [])
 
 	// ======================== Range =========================
-	// 容器实际滚动长度 = 内容最大长度 - 内容可见长度
+	// Actual scrollable content range equals full content size minus visible size.
 	const enableScrollRange = scrollRange - containerSize || 0
-	// 可以滚动的长度 = 滚动的容器长度 - 滚动条长度
+	// Available thumb travel range equals track size minus thumb size.
 	const enableOffsetRange = containerSize - thumbSize[sizeProperty] || 0
 
-	// 是否可以滚动
+	// Whether the axis has any scrollable overflow.
 	const canScroll = enableScrollRange > 0
 
 	// ========================= Offset ==========================
@@ -129,6 +133,39 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 		event.preventDefault()
 	}, [])
 
+	const flushPendingDragScroll = useCallback(() => {
+		raf.cancel(dragScrollRafRef.current)
+		dragScrollRafRef.current = -1
+
+		const nextScrollOffset = pendingDragScrollOffsetRef.current
+		pendingDragScrollOffsetRef.current = null
+		if (nextScrollOffset !== null) {
+			onScrollRef.current?.(nextScrollOffset)
+		}
+	}, [])
+
+	const scheduleDragScroll = useCallback((nextScrollOffset: number) => {
+		pendingDragScrollOffsetRef.current = nextScrollOffset
+		if (dragScrollRafRef.current !== -1) {
+			return
+		}
+
+		dragScrollRafRef.current = raf(() => {
+			dragScrollRafRef.current = -1
+			const pendingScrollOffset = pendingDragScrollOffsetRef.current
+			pendingDragScrollOffsetRef.current = null
+			if (pendingScrollOffset !== null) {
+				onScrollRef.current?.(pendingScrollOffset)
+			}
+		})
+	}, [])
+
+	useEffect(() => {
+		return () => {
+			raf.cancel(dragScrollRafRef.current)
+		}
+	}, [])
+
 	useEffect(() => {
 		const scrollbarEle = trackRef.current
 		const thumbEle = thumbRef.current
@@ -152,26 +189,12 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 
 	useEffect(() => {
 		if (dragging) {
-			let moveRafId = -1
-			let pendingDragScrollOffset: number | null = null
-
-			const flushPendingDragScroll = () => {
-				if (pendingDragScrollOffset === null) {
-					return
-				}
-
-				const nextScrollOffset = pendingDragScrollOffset
-				pendingDragScrollOffset = null
-				onScroll?.(nextScrollOffset)
-			}
-
 			const onMouseMove = (event: MouseEvent | TouchEvent) => {
 				const {
 					dragging: stateDragging,
 					pageXY: statePageXY,
 					startOffset: stateStartOffset
 				} = stateRef.current
-				raf.cancel(moveRafId)
 
 				if (stateDragging) {
 					const eventOffset = getPageXY(event, !isVertical)
@@ -186,16 +209,11 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 					let newScrollOffset = Math.ceil(ptg * tmpEnableScrollRange)
 					newScrollOffset = Math.max(newScrollOffset, 0)
 					newScrollOffset = Math.min(newScrollOffset, tmpEnableScrollRange)
-					pendingDragScrollOffset = newScrollOffset
-
-					moveRafId = raf(() => {
-						flushPendingDragScroll()
-					})
+					scheduleDragScroll(newScrollOffset)
 				}
 			}
 
 			const onMouseUp = () => {
-				raf.cancel(moveRafId)
 				flushPendingDragScroll()
 				setDragging(false)
 				onStopMove?.()
@@ -211,10 +229,9 @@ const ScrollBar = forwardRef<ScrollBarRef, ScrollBarComponentProps>((props, ref)
 				window.removeEventListener("touchmove", onMouseMove)
 				window.removeEventListener("mouseup", onMouseUp)
 				window.removeEventListener("touchend", onMouseUp)
-				raf.cancel(moveRafId)
 			}
 		}
-	}, [dragging, isVertical, onScroll, onStopMove])
+	}, [dragging, flushPendingDragScroll, isVertical, onStopMove, scheduleDragScroll])
 
 	// ====================== Imperative ======================
 	useImperativeHandle(ref, () => ({

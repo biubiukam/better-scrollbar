@@ -11,8 +11,8 @@ import {
 } from "../site/examplex/MillionRows/utils"
 
 describe("MillionRows demo helpers", () => {
-	it("describes a 50-million-row dataset without materializing row data", () => {
-		expect(MILLION_ROW_COUNT).toBe(50_000_000)
+	it("describes a 100-million-row dataset without materializing row data", () => {
+		expect(MILLION_ROW_COUNT).toBe(100_000_000)
 		expect(ESTIMATED_MILLION_ROW_HEIGHT).toBeGreaterThan(0)
 		expect(getMillionRowHeight(0)).toBeGreaterThan(getMillionRowHeight(1))
 		expect(getMillionRowHeight(35)).not.toBe(getMillionRowHeight(36))

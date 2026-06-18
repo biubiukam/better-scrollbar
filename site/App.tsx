@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import DemoA from "./views/DemoA"
+import Home from "./views/Home"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import "../src/styles/index.less"
 
@@ -57,11 +57,11 @@ function App() {
 	return (
 		<TooltipProvider>
 			<div className="min-h-screen bg-background text-foreground">
-				<DemoA
-					theme={ theme }
-					locale={ locale }
-					onThemeChange={ toggleTheme }
-					onLocaleChange={ setLocale }
+				<Home
+					theme={theme}
+					locale={locale}
+					onThemeChange={toggleTheme}
+					onLocaleChange={setLocale}
 				/>
 			</div>
 		</TooltipProvider>

@@ -29,10 +29,12 @@ import {
 	getScenarioGroupCounts,
 	getScenarioPropsSnapshot
 } from "./utils"
-import "./index.less"
+import { cn, demoTw, toneRowTw } from "../tailwind"
 
 const SCENARIO_LIST_HEIGHT = 420
 const MAX_LOG_COUNT = 6
+const SCENARIO_BUTTON_CLASS = "h-[30px] shrink-0 rounded-md border border-border bg-muted/40 px-2.5 text-xs text-card-foreground hover:bg-muted"
+const SCENARIO_PANEL_TITLE_CLASS = "text-[13px] font-semibold leading-[18px] text-card-foreground"
 const INITIAL_ITEMS_RENDERED: ItemsRenderedInfo = {
 	startIndex: 0,
 	endIndex: -1,
@@ -46,7 +48,7 @@ function appendLog(logs: string[], message: string) {
 
 function Field({label, children}: PropsWithChildren<{label: string}>) {
 	return (
-		<label className="scenario-playground-field">
+		<label className="scenario-playground-field grid gap-1.5 text-xs leading-4 text-muted-foreground">
 			<span>{ label }</span>
 			{ children }
 		</label>
@@ -59,23 +61,24 @@ function Toggle({label, checked, onChange}: {
 	onChange: (checked: boolean) => void
 }) {
 	return (
-		<label className="scenario-playground-toggle">
+		<label className="scenario-playground-toggle flex min-h-8 min-w-0 items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-xs leading-4 text-card-foreground">
 			<input
+				className="h-4 w-4 shrink-0 accent-primary"
 				type="checkbox"
 				aria-label={ label }
 				checked={ checked }
 				onChange={ (event) => onChange(event.currentTarget.checked) }
 			/>
-			<span>{ label }</span>
+			<span className="min-w-0 truncate">{ label }</span>
 		</label>
 	)
 }
 
 function Metric({label, value}: {label: string, value: React.ReactNode}) {
 	return (
-		<div className="scenario-playground-metric">
-			<span>{ label }</span>
-			<strong>{ value }</strong>
+		<div className="scenario-playground-metric grid min-h-[54px] min-w-0 content-center gap-0.5 bg-muted/30 px-2.5 py-2 tabular-nums">
+			<span className="text-[11px] leading-[14px] text-muted-foreground">{ label }</span>
+			<strong className="min-w-0 truncate text-[13px] font-semibold leading-[18px] text-card-foreground">{ value }</strong>
 		</div>
 	)
 }
@@ -304,8 +307,8 @@ function ScenarioPlayground() {
 			animation: 120,
 			draggable: ".scenario-playground-row.is-draggable",
 			forceFallback: true,
-			ghostClass: "scenario-playground-row--ghost",
-			chosenClass: "scenario-playground-row--chosen",
+			ghostClass: "opacity-20",
+			chosenClass: "bg-primary/10",
 			onEnd: onSortableDragEnd
 		})
 	}, [config.dragEnabled, onSortableDragEnd])
@@ -315,7 +318,7 @@ function ScenarioPlayground() {
 			<div
 				{ ...props }
 				ref={ bindScenarioView }
-				className={ `${ props?.className ?? "" } scenario-playground-scroll-view` }
+				className={ cn(props?.className, "scenario-playground-scroll-view bg-card") }
 				style={ {
 					...(props?.style || {}),
 					"--scenario-tone": toneChannel
@@ -330,7 +333,7 @@ function ScenarioPlayground() {
 		return (
 			<div
 				{ ...props }
-				className={ `${ props?.className ?? "" } scenario-playground-thumb` }
+				className={ cn(props?.className, "scenario-playground-thumb rounded-[inherit] bg-primary") }
 				style={ {
 					...(props?.style || {}),
 					"--scenario-tone": toneChannel
@@ -340,9 +343,9 @@ function ScenarioPlayground() {
 	}, [toneChannel])
 
 	const renderPlaceholder = useCallback((index: number) => (
-		<div className="scenario-playground-placeholder" style={ {height: getScenarioEstimatedHeight(config)} }>
-			<span>#{ (index + 1).toLocaleString() }</span>
-			<strong>Scrolling...</strong>
+		<div className="scenario-playground-placeholder grid w-full grid-cols-[132px_minmax(0,1fr)_94px_54px] items-center gap-2.5 border-t border-border bg-card px-3.5 text-[13px] text-muted-foreground opacity-70 tabular-nums" style={ {height: getScenarioEstimatedHeight(config)} }>
+			<span className="font-semibold text-card-foreground">#{ (index + 1).toLocaleString() }</span>
+			<strong className="min-w-0 truncate font-medium">Scrolling...</strong>
 		</div>
 	), [config])
 
@@ -357,13 +360,15 @@ function ScenarioPlayground() {
 		const height = isGroupHeader ? 44 : isPrepended ? 42 : getRowHeight(businessIndex, config)
 		const tone = isGroupHeader ? "group" : isPrepended ? "focus" : getMillionRowTone(businessIndex)
 		const isRowDraggable = config.dragEnabled && !isGroupHeader
-		const className = [
+		const className = cn(
 			"scenario-playground-row",
 			`scenario-playground-row--${ tone }`,
-			isRowDraggable ? "is-draggable" : "",
-			draggingIndex === index ? "is-dragging" : "",
-			dropTargetIndex === index && draggingIndex !== index ? "is-drop-target" : ""
-		].filter(Boolean).join(" ")
+			"grid w-full grid-cols-[132px_minmax(0,1fr)_94px_54px] items-center gap-2.5 border-t border-border bg-card px-3.5 text-[13px] text-muted-foreground tabular-nums",
+			toneRowTw[tone],
+			isRowDraggable && "is-draggable cursor-grab select-none active:cursor-grabbing",
+			draggingIndex === index && "is-dragging opacity-60",
+			dropTargetIndex === index && draggingIndex !== index && "is-drop-target shadow-[inset_3px_0_0_hsl(var(--primary))]"
+		)
 
 		if (isGroupHeader) {
 			const groupIndex = getScenarioGroupIndex(scenarioIndex)
@@ -377,9 +382,9 @@ function ScenarioPlayground() {
 					onDrop={ onNativeDrop(index) }
 					onDragEnd={ onNativeDragEnd }
 				>
-					<span>Group { groupIndex + 1 }</span>
-					<strong>{ (SCENARIO_GROUP_BLOCK_SIZE - 1).toLocaleString() } rows</strong>
-					<em>sticky</em>
+					<span className="font-semibold text-card-foreground">Group { groupIndex + 1 }</span>
+					<strong className="min-w-0 truncate font-medium text-card-foreground">{ (SCENARIO_GROUP_BLOCK_SIZE - 1).toLocaleString() } rows</strong>
+					<em className="not-italic text-xs text-muted-foreground">sticky</em>
 				</div>
 			)
 		}
@@ -394,10 +399,10 @@ function ScenarioPlayground() {
 				onDrop={ onNativeDrop(index) }
 				onDragEnd={ onNativeDragEnd }
 			>
-				<span>{ isPrepended ? "History" : `#${ (businessIndex + 1).toLocaleString() }` }</span>
-				<strong>{ isPrepended ? `Prepended batch ${ prependedCount - orderedIndex }` : `Order ${ (businessIndex % 997) + 1 }` }</strong>
-				<em>{ isPrepended ? "anchor" : getMillionRowStatus(businessIndex) }</em>
-				<small>{ height }px</small>
+				<span className="font-semibold text-card-foreground">{ isPrepended ? "History" : `#${ (businessIndex + 1).toLocaleString() }` }</span>
+				<strong className="min-w-0 truncate font-medium">{ isPrepended ? `Prepended batch ${ prependedCount - orderedIndex }` : `Order ${ (businessIndex % 997) + 1 }` }</strong>
+				<em className="not-italic text-xs text-muted-foreground">{ isPrepended ? "anchor" : getMillionRowStatus(businessIndex) }</em>
+				<small className="text-right text-xs text-muted-foreground">{ height }px</small>
 			</div>
 		)
 	}, [
@@ -417,36 +422,41 @@ function ScenarioPlayground() {
 	const shouldRenderScenarioView = config.styleMode === "custom" || config.dragEnabled
 
 	return (
-		<div className="scenario-playground" data-row-count={ MILLION_ROW_COUNT }>
-			<div className="scenario-playground-head">
+		<div className="scenario-playground flex h-full min-h-0 w-full flex-col overflow-hidden bg-card text-card-foreground" data-row-count={ MILLION_ROW_COUNT }>
+			<div className="scenario-playground-head grid flex-none gap-3 border-b border-border px-5 py-4 lg:flex lg:items-start lg:justify-between lg:gap-[18px]">
 				<div>
-					<div className="scenario-playground-kicker">All-in-one props playground</div>
-					<h3>5000 万行虚拟列表实验台</h3>
-					<p>通过场景预设和表单组合 props，观察同一份 5000 万行数据在不同虚拟滚动策略下的 DOM、区间、滚动和交互表现。</p>
+					<div className="scenario-playground-kicker text-xs font-semibold leading-[18px] text-accent">All-in-one props playground</div>
+					<h3 className="mt-1 text-lg font-semibold leading-[26px] text-card-foreground">1 亿行虚拟列表实验台</h3>
+					<p className="mt-1.5 max-w-[760px] text-[13px] leading-5 text-muted-foreground">通过场景预设和表单组合 props，观察同一份 1 亿行数据在不同虚拟滚动策略下的 DOM、区间、滚动和交互表现。</p>
 				</div>
-				<div className="scenario-playground-total">
-					<span>Base rows</span>
-					<strong>{ MILLION_ROW_COUNT.toLocaleString() } rows</strong>
+				<div className="scenario-playground-total grid min-w-[140px] gap-0.5 rounded-md border border-border bg-muted/30 px-2.5 py-2 text-left tabular-nums lg:text-right">
+					<span className="text-xs leading-4 text-muted-foreground">Base rows</span>
+					<strong className="text-[15px] font-semibold leading-5 text-card-foreground">{ MILLION_ROW_COUNT.toLocaleString() } rows</strong>
 				</div>
 			</div>
-			<div className="scenario-playground-grid">
-				<aside className="scenario-playground-controls" aria-label="场景配置">
-					<div className="scenario-playground-preset-grid">
+			<div className="scenario-playground-grid grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
+				<aside className="scenario-playground-controls min-h-0 min-w-0 overflow-auto border-b border-border bg-muted/20 p-3.5 lg:border-b-0 lg:border-r" aria-label="场景配置">
+					<div className="scenario-playground-preset-grid grid grid-cols-2 gap-2">
 						{ SCENARIO_PRESETS.map((preset) => (
 							<button
 								key={ preset.id }
 								type="button"
-								className={ preset.id === activePresetId ? "is-active" : "" }
+								className={ cn(
+									SCENARIO_BUTTON_CLASS,
+									"min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
+									preset.id === activePresetId && "is-active border-accent bg-accent/10 font-semibold text-accent"
+								) }
 								onClick={ () => applyPreset(preset.id) }
 							>
 								{ preset.label }
 							</button>
 						)) }
 					</div>
-					<p className="scenario-playground-preset-desc">{ activePreset.description }</p>
-					<div className="scenario-playground-form">
+					<p className="scenario-playground-preset-desc mt-2.5 min-h-14 text-xs leading-[18px] text-muted-foreground">{ activePreset.description }</p>
+					<div className="scenario-playground-form grid gap-2.5">
 						<Field label="高度策略">
 							<select
+								className={ demoTw.control }
 								aria-label="高度策略"
 								value={ config.heightMode }
 								onChange={ (event) => updateConfig({heightMode: event.currentTarget.value as HeightMode}) }
@@ -457,6 +467,7 @@ function ScenarioPlayground() {
 						</Field>
 						<Field label="overscan">
 							<input
+								className={ demoTw.control }
 								aria-label="overscan"
 								type="number"
 								min={ 0 }
@@ -467,6 +478,7 @@ function ScenarioPlayground() {
 						</Field>
 						<Field label="像素 overscan">
 							<input
+								className={ demoTw.control }
 								aria-label="像素 overscan"
 								type="number"
 								min={ 0 }
@@ -478,6 +490,7 @@ function ScenarioPlayground() {
 						</Field>
 						<Field label="ARIA 模式">
 							<select
+								className={ demoTw.control }
 								aria-label="ARIA 模式"
 								value={ config.accessibilityMode }
 								onChange={ (event) => updateConfig({accessibilityMode: event.currentTarget.value as AccessibilityMode}) }
@@ -489,6 +502,7 @@ function ScenarioPlayground() {
 						</Field>
 						<Field label="样式模式">
 							<select
+								className={ demoTw.control }
 								aria-label="样式模式"
 								value={ config.styleMode }
 								onChange={ (event) => updateConfig({styleMode: event.currentTarget.value as StyleMode}) }
@@ -499,6 +513,7 @@ function ScenarioPlayground() {
 						</Field>
 						<Field label="物理滚动范围">
 							<select
+								className={ demoTw.control }
 								aria-label="物理滚动范围"
 								value={ config.maxBrowserScrollHeight }
 								onChange={ (event) => updateConfig({maxBrowserScrollHeight: Number(event.currentTarget.value)}) }
@@ -508,7 +523,7 @@ function ScenarioPlayground() {
 								<option value={ 2_000_000 }>2,000,000</option>
 							</select>
 						</Field>
-						<div className="scenario-playground-toggle-grid">
+						<div className="scenario-playground-toggle-grid grid grid-cols-2 gap-2">
 							<Toggle label="自适应 overscan" checked={ config.adaptiveOverscan } onChange={ (checked) => updateConfig({adaptiveOverscan: checked}) }/>
 							<Toggle label="滚动占位" checked={ config.scrollSeek } onChange={ (checked) => updateConfig({scrollSeek: checked}) }/>
 							<Toggle label="锚点保持" checked={ config.maintainVisibleContentPosition } onChange={ (checked) => updateConfig({maintainVisibleContentPosition: checked}) }/>
@@ -518,10 +533,11 @@ function ScenarioPlayground() {
 						</div>
 					</div>
 				</aside>
-				<section className="scenario-playground-stage">
-					<div className="scenario-playground-actions">
+				<section className="scenario-playground-stage flex min-h-0 min-w-0 flex-col bg-card">
+					<div className="scenario-playground-actions flex min-h-12 shrink-0 items-center gap-2 overflow-x-auto border-b border-border bg-card px-3 py-2">
 						{ MILLION_JUMP_POINTS.map((point) => (
 							<button
+								className={ SCENARIO_BUTTON_CLASS }
 								key={ point.label }
 								type="button"
 								aria-label={ `跳到${ point.label }` }
@@ -530,13 +546,13 @@ function ScenarioPlayground() {
 								{ point.label }
 							</button>
 						)) }
-						<button type="button" onClick={ fastScroll }>快速下滚</button>
-						<button type="button" aria-label="上方插入 20 条" onClick={ prependRows }>插入 20</button>
-						<button type="button" aria-label="底部追加 100 条" onClick={ appendRows }>追加 100</button>
-						<button type="button" onClick={ deleteVisibleRow }>删除首行</button>
-						<button type="button" onClick={ resetMutations }>重置变更</button>
+						<button className={ SCENARIO_BUTTON_CLASS } type="button" onClick={ fastScroll }>快速下滚</button>
+						<button className={ SCENARIO_BUTTON_CLASS } type="button" aria-label="上方插入 20 条" onClick={ prependRows }>插入 20</button>
+						<button className={ SCENARIO_BUTTON_CLASS } type="button" aria-label="底部追加 100 条" onClick={ appendRows }>追加 100</button>
+						<button className={ SCENARIO_BUTTON_CLASS } type="button" onClick={ deleteVisibleRow }>删除首行</button>
+						<button className={ SCENARIO_BUTTON_CLASS } type="button" onClick={ resetMutations }>重置变更</button>
 					</div>
-					<div className={ `scenario-playground-list ${ config.styleMode === "custom" ? "is-custom" : "" }` }>
+					<div className={ cn("scenario-playground-list h-[420px] w-full shrink-0 border-b border-border bg-card", config.styleMode === "custom" && "is-custom bg-primary/5") }>
 						<VirtualScrollBar
 							ref={ scrollRef }
 							height={ SCENARIO_LIST_HEIGHT }
@@ -560,7 +576,7 @@ function ScenarioPlayground() {
 							onItemsRendered={ onItemsRendered }
 						/>
 					</div>
-					<div className="scenario-playground-metrics">
+					<div className="scenario-playground-metrics grid shrink-0 grid-cols-2 gap-px border-b border-border bg-border lg:grid-cols-6">
 						<Metric label="Total" value={ itemCount.toLocaleString() }/>
 						<Metric label="Visible" value={ formatVirtualRange({
 							startIndex: itemsRendered.visibleStartIndex,
@@ -571,17 +587,17 @@ function ScenarioPlayground() {
 						<Metric label="Y" value={ Math.round(scrollState.y).toLocaleString() }/>
 						<Metric label="FPS" value={ fps || "-" }/>
 					</div>
-					<div className="scenario-playground-bottom">
-						<div className="scenario-playground-snapshot">
-							<h4>当前 props 快照</h4>
-							<div>
-								{ propsSnapshot.map((line) => <code key={ line }>{ line }</code>) }
+					<div className="scenario-playground-bottom grid min-h-0 flex-1 grid-cols-1 border-b border-border lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.7fr)]">
+						<div className="scenario-playground-snapshot min-h-0 min-w-0 overflow-auto border-b border-border px-3.5 py-3 lg:border-b-0 lg:border-r">
+							<h4 className={ SCENARIO_PANEL_TITLE_CLASS }>当前 props 快照</h4>
+							<div className="mt-2 grid grid-cols-1 gap-x-2 gap-y-1.5 xl:grid-cols-2">
+								{ propsSnapshot.map((line) => <code className="min-w-0 truncate rounded-md border border-border bg-muted/30 px-2 py-1 text-[11px] leading-[15px] text-muted-foreground" key={ line }>{ line }</code>) }
 							</div>
 						</div>
-						<div className="scenario-playground-log">
-							<h4>事件日志</h4>
-							<ul>
-								{ logs.map((log, index) => <li key={ `${ log }-${ index }` }>{ log }</li>) }
+						<div className="scenario-playground-log min-h-0 min-w-0 overflow-auto px-3.5 py-3">
+							<h4 className={ SCENARIO_PANEL_TITLE_CLASS }>事件日志</h4>
+							<ul className="mt-2 grid gap-1.5">
+								{ logs.map((log, index) => <li className="min-w-0 truncate text-xs leading-[18px] text-muted-foreground" key={ `${ log }-${ index }` }>{ log }</li>) }
 							</ul>
 						</div>
 					</div>

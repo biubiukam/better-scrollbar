@@ -2,6 +2,7 @@
 .DS_*
 *.log
 logs
+*.tsbuildinfo
 **/*.backup.*
 **/*.back.*
 
@@ -16,9 +17,9 @@ sketch
 lib
 es
 dist
+dist-site
+coverage
 .idea
 .npmrc
 package-lock.json
-pnpm-lock.yaml
 .vscode
-

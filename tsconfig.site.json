@@ -37,9 +37,12 @@
 	],
 	"exclude": [
 		"node_modules",
-		"dist"
+		"dist",
+		"dist-site"
 	],
 	"include": [
-		"site"
+		"site",
+		"src",
+		"types/*.ts"
 	]
 }

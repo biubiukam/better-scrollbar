@@ -1,8 +1,8 @@
 const MIN_SIZE = 25;
 /**
- * @description 获取滚动条的大小
- * @param {number} containerSize 滚动视区高度
- * @param {number} scrollRange 实际滚动高度
+ * @description Calculates the scrollbar thumb size.
+ * @param {number} containerSize Viewport size on the scrollbar axis.
+ * @param {number} scrollRange Full scrollable content size on the scrollbar axis.
  */
 export function getSpinSize(containerSize: number = 0, scrollRange: number = 0) {
 	let baseSize = (containerSize / scrollRange) * 100;
@@ -13,4 +13,3 @@ export function getSpinSize(containerSize: number = 0, scrollRange: number = 0) 
 	baseSize = Math.min(baseSize, containerSize / 2);
 	return Math.floor(baseSize);
 }
-

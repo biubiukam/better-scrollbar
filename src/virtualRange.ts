@@ -111,7 +111,7 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 
 	private blocks = new Map<number, Map<number, number>>()
 
-	private blockDeltas = new FenwickTree(0)
+	private blockDeltas: FenwickTree | null = null
 
 	constructor(options: VirtualHeightIndexOptions) {
 		this.reset(options)
@@ -131,7 +131,7 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 		this.totalHeight = this.count * this.estimatedHeight
 		this.measuredHeights = new Map()
 		this.blocks = new Map()
-		this.blockDeltas = new FenwickTree(Math.ceil(this.count / this.blockSize))
+		this.blockDeltas = null
 
 		measuredHeights.forEach((height, index) => {
 			this.setMeasuredHeight(index, height)
@@ -166,7 +166,7 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 		this.measuredHeights.delete(safeIndex)
 		this.measuredHeights.set(safeIndex, height)
 		block.set(safeIndex, height)
-		this.blockDeltas.add(blockIndex, deltaChange)
+		this.getBlockDeltas().add(blockIndex, deltaChange)
 		this.totalHeight += deltaChange
 		this.evictOverflowMeasuredHeights()
 
@@ -191,8 +191,12 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 
 	getOffset = (index: number) => {
 		const safeIndex = Math.max(Math.min(Math.floor(index), this.count), 0)
+		if (this.isFixedHeight()) {
+			return safeIndex * this.estimatedHeight
+		}
+
 		const blockIndex = this.getBlockIndex(safeIndex)
-		const previousBlockDelta = this.blockDeltas.sumBefore(blockIndex)
+		const previousBlockDelta = this.blockDeltas?.sumBefore(blockIndex) ?? 0
 		const currentBlockDelta = this.getCurrentBlockDeltaBefore(blockIndex, safeIndex)
 
 		return safeIndex * this.estimatedHeight + previousBlockDelta + currentBlockDelta
@@ -213,6 +217,16 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 		const safeViewportSize = Math.max(viewportSize, 0)
 		const safeOverscan = normalizeOverscanRange(overscan)
 		const safeOverscanPixels = overscanPixels === undefined ? null : normalizeOverscanRange(overscanPixels)
+		if (this.isFixedHeight()) {
+			return this.getFixedHeightRange({
+				scrollOffset,
+				safeViewportSize,
+				safeOverscan,
+				safeOverscanPixels,
+				maxItems: normalizeMaxItems(maxItems)
+			})
+		}
+
 		const visibleStartIndex = this.findIndex(scrollOffset)
 		const visibleEndOffset = safeViewportSize > 0
 			? scrollOffset + safeViewportSize - 1
@@ -271,6 +285,64 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 		return result
 	}
 
+	private getFixedHeightRange({
+		scrollOffset,
+		safeViewportSize,
+		safeOverscan,
+		safeOverscanPixels,
+		maxItems
+	}: {
+		scrollOffset: number
+		safeViewportSize: number
+		safeOverscan: VirtualOverscanRange
+		safeOverscanPixels: VirtualOverscanRange | null
+		maxItems: number
+	}): VirtualRangeResult {
+		const visibleStartIndex = this.findFixedHeightIndex(scrollOffset)
+		const visibleEndOffset = safeViewportSize > 0
+			? scrollOffset + safeViewportSize - 1
+			: scrollOffset
+		const visibleEndIndex = this.findFixedHeightIndex(visibleEndOffset)
+		let start = Math.max(visibleStartIndex - safeOverscan.before, 0)
+		let end = Math.min(visibleEndIndex + safeOverscan.after, this.count - 1)
+
+		if (safeOverscanPixels) {
+			start = Math.min(
+				start,
+				this.findFixedHeightIndex(Math.max(scrollOffset - safeOverscanPixels.before, 0))
+			)
+			end = Math.max(
+				end,
+				this.findFixedHeightIndex(visibleEndOffset + safeOverscanPixels.after)
+			)
+		}
+
+		const cappedRange = this.capRangeToMaxItems({
+			start,
+			end,
+			visibleStartIndex,
+			visibleEndIndex,
+			maxItems
+		})
+		start = cappedRange.start
+		end = cappedRange.end
+
+		return {
+			scrollHeight: this.totalHeight,
+			start,
+			end,
+			visibleStartIndex,
+			visibleEndIndex,
+			offset: start * this.estimatedHeight
+		}
+	}
+
+	private findFixedHeightIndex(offset: number) {
+		const targetOffset = Math.max(Math.min(offset, Math.max(this.totalHeight - 1, 0)), 0)
+
+		return Math.min(Math.floor(targetOffset / this.estimatedHeight), this.count - 1)
+	}
+
 	private getCurrentBlockDeltaBefore(blockIndex: number, index: number) {
 		const block = this.blocks.get(blockIndex)
 		if (!block) {
@@ -293,6 +365,18 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 
 	private isValidIndex(index: number) {
 		return Number.isInteger(index) && index >= 0 && index < this.count
+	}
+
+	private isFixedHeight() {
+		return this.measuredHeights.size === 0
+	}
+
+	private getBlockDeltas() {
+		if (!this.blockDeltas) {
+			this.blockDeltas = new FenwickTree(Math.ceil(this.count / this.blockSize))
+		}
+
+		return this.blockDeltas
 	}
 
 	private capRangeToMaxItems({
@@ -360,7 +444,7 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 		}
 
 		this.measuredHeights.delete(index)
-		this.blockDeltas.add(blockIndex, this.estimatedHeight - previousHeight)
+		this.blockDeltas?.add(blockIndex, this.estimatedHeight - previousHeight)
 		this.totalHeight -= previousHeight - this.estimatedHeight
 	}
 }

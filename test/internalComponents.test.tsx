@@ -169,6 +169,49 @@ describe("internal component utilities", () => {
 		vi.useRealTimers()
 	})
 
+	it("batches drag offsets until the next frame and emits only the latest value", () => {
+		vi.useFakeTimers()
+		const onScroll = vi.fn()
+		const { getByTestId } = render(
+			<InternalScrollBar
+				orientation="vertical"
+				prefixCls="scroll-bar"
+				scrollState={baseScrollState}
+				containerSize={100}
+				scrollRange={1000}
+				thumbSize={{ width: 6, height: 25 }}
+				autoHideTimeout={1000}
+				renderTrack={renderTrack}
+				renderThumb={renderThumb}
+				onScroll={onScroll}
+			/>
+		)
+		const thumb = getByTestId("thumb")
+		const mouseDown = new MouseEvent("mousedown", { bubbles: true })
+		Object.defineProperty(mouseDown, "pageY", { value: 0 })
+		const firstMove = new MouseEvent("mousemove", { bubbles: true })
+		Object.defineProperty(firstMove, "pageY", { value: 25 })
+		const secondMove = new MouseEvent("mousemove", { bubbles: true })
+		Object.defineProperty(secondMove, "pageY", { value: 50 })
+
+		act(() => {
+			thumb.dispatchEvent(mouseDown)
+		})
+		act(() => {
+			window.dispatchEvent(firstMove)
+			window.dispatchEvent(secondMove)
+		})
+
+		expect(onScroll).not.toHaveBeenCalled()
+		act(() => {
+			vi.advanceTimersByTime(20)
+		})
+
+		expect(onScroll).toHaveBeenCalledTimes(1)
+		expect(onScroll).toHaveBeenLastCalledWith(600)
+		vi.useRealTimers()
+	})
+
 	it("flushes the latest drag offset when the thumb is released before the next frame", () => {
 		vi.useFakeTimers()
 		const onScroll = vi.fn()

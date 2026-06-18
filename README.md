@@ -4,146 +4,148 @@
 ![NPM Version](https://img.shields.io/npm/v/better-scrollbar)
 [![Coverage Status](https://coveralls.io/repos/github/kampiu/better-scrollbar/badge.svg?branch=master)](https://coveralls.io/github/kampiu/better-scrollbar?branch=master)
 
-Highly customizable, high-performance virtual list for big data rendering.
+Highly customizable, high-performance React virtual scrolling with custom
+horizontal and vertical scrollbars.
 
-Feel free to provide feedback if there are any issues, and promptly synchronize problem handling.
+## Features
+
+- Children mode for regular React lists.
+- Indexed rendering with `itemCount + renderItem` for very large data sets.
+- Dynamic-height measurement with a shared `ResizeObserver`.
+- Custom scrollbar tracks, thumbs, and view wrappers.
+- Scroll anchoring, bottom-following output, sticky rows, and ARIA metadata.
+- Optional native wheel/trackpad scrolling when the browser can represent the
+  full physical scroll range.
 
 ## Installation
+
 ```bash
-npm install better-scrollbar --save
+pnpm add better-scrollbar
 ```
 
-## Usage
+```bash
+npm install better-scrollbar
+```
 
-For the complete user-facing API, including every prop type and default value, see [docs/virtual-scrollbar-api.md](docs/virtual-scrollbar-api.md).
+## Quick Start
 
-```javascript
-import React, { Component } from "react"
+```tsx
 import ScrollBar from "better-scrollbar"
-import "better-scrollbar/dist/BetterScrollbar.min.css"
+import "better-scrollbar/dist/ScrollBar.min.css"
 
-class App extends Component {
-  render() {
-    return (
-      <ScrollBar style={{ width: 500, height: 300 }}>
-        <p>Some great content...</p>
-      </ScrollBar>
-    )
-  }
+export default function BasicList() {
+	return (
+		<ScrollBar width={500} height={300} itemHeight={32}>
+			<div key="a">Row A</div>
+			<div key="b">Row B</div>
+			<div key="c">Row C</div>
+		</ScrollBar>
+	)
 }
 ```
 
-The `<ScrollBar>` component is completely customizable. Check out the following code:
+## Indexed Rendering
 
-```javascript
-import React, { Component } from "react"
-import ScrollBar from "better-scrollbar"
-import "better-scrollbar/dist/BetterScrollbar.min.css"
-
-class CustomScrollBar extends Component {
-  render() {
-    return (
-      <ScrollBar
-        width={this.props.width}
-        height={this.props.height}
-        onScroll={this.handleScroll}
-        onScrollStart={this.handleScrollStart}
-        onScrollEnd={this.handleScrollEnd}
-        renderView={this.renderView}
-        renderTrackHorizontal={this.renderTrackHorizontal}
-        renderTrackVertical={this.renderTrackVertical}
-        renderThumbHorizontal={this.renderThumbHorizontal}
-        renderThumbVertical={this.renderThumbVertical}
-        scrollBarHidden
-        scrollBarAutoHideTimeout={1000}
-        {...this.props}
-      />
-    )
-  }
-}
-```
-
-### 50 million rows
+Use indexed rendering when the data set is too large to allocate as a full
+children array.
 
 ```tsx
 import ScrollBar from "better-scrollbar"
 
 const ROW_COUNT = 50_000_000
 
-export default () => (
-  <ScrollBar
-    width={720}
-    height={420}
-    itemCount={ROW_COUNT}
-    estimatedItemHeight={32}
-    heightCacheLimit={50_000}
-    overscanPixels={320}
-    maxRenderedItems={500}
-    scrollMode="native"
-    adaptiveOverscan
-    scrollSeek={{ velocityThreshold: 2, exitVelocityThreshold: 0.8 }}
-    renderItem={(index) => (
-      <div key={index} style={{ height: 32 }}>
-        Row {index.toLocaleString()}
-      </div>
-    )}
-  />
-)
+export default function HugeList() {
+	return (
+		<ScrollBar
+			width={720}
+			height={420}
+			itemCount={ROW_COUNT}
+			estimatedItemHeight={32}
+			heightCacheLimit={50_000}
+			overscan={2}
+			overscanPixels={320}
+			maxRenderedItems={500}
+			scrollMode="native"
+			adaptiveOverscan
+			scrollSeek={{ velocityThreshold: 2, exitVelocityThreshold: 0.8 }}
+			renderItem={(index) => (
+				<div key={index} style={{ height: 32 }}>
+					Row {index.toLocaleString()}
+				</div>
+			)}
+		/>
+	)
+}
 ```
 
 For massive logical ranges, `scrollMode="native"` stays native only while the
-browser can represent the full scroll height. When `maxBrowserScrollHeight`
-compresses the physical range, wheel input automatically uses the controlled
-path so each wheel delta still maps to the exact logical offset. `scrollSeek`
-placeholders are intentionally not measured as row heights, and
-`maxRenderedItems` also protects `isVirtual={false}` / `preserveItemState`
-from accidentally mounting very large DOM trees. Pass
-`maxRenderedItems={Infinity}` only when rendering every item is intentional.
+browser can represent the full scroll height. When the component compresses the
+physical browser range through `maxBrowserScrollHeight`, wheel input falls back
+to the controlled path so each delta still maps to the exact logical offset.
 
-### If you are a tree level structure, you can use the following code:
+## Custom Rendering
 
 ```tsx
-import React from "react"
-import ScrollBar from "better-scrollbar"
-import "better-scrollbar/dist/BetterScrollbar.min.css"
+import type { HTMLProps } from "react"
+import ScrollBar, { type RenderElement } from "better-scrollbar"
 
-interface Node {
-  id: string
-  name: string
-  next?: Array<Node>
-}
+const renderThumb: RenderElement<HTMLProps<HTMLDivElement>> = (props) => (
+	<div
+		{...props}
+		style={{
+			...props?.style,
+			background: "rgba(37, 99, 235, 0.7)",
+			borderRadius: 999
+		}}
+	/>
+)
 
-const renderList = (props: Node): Array<JSX.Element> => {
-  const component = <div>{ props.name }</div>
-  const nodesList = [component]
-
-  if (props?.next && props?.next) {
-    props?.next?.map((node) => nodesList.push(...renderList(node)))
-  }
-  return nodesList
-}
-
-export default () => {
-  const tree: Node = {id: "1", name: "demo"}
-  return (
-    <div>
-      <ScrollBar width={ 500 } height={ 200 }>
-        { renderList(tree) }
-      </ScrollBar>
-    </div>
-  )
+export default function CustomScrollbar() {
+	return (
+		<ScrollBar
+			width={500}
+			height={300}
+			scrollBarSize={8}
+			renderThumbVertical={renderThumb}
+			renderThumbHorizontal={renderThumb}
+		>
+			<div style={{ width: 900, height: 600 }}>Large content</div>
+		</ScrollBar>
+	)
 }
 ```
 
-## Examples
+## Documentation
 
-Run the simple example:
+- [VirtualScrollBar API](docs/virtual-scrollbar-api.md)
+- [Virtual list optimization practices](docs/virtual-list-optimization.md)
+- [Contributing guide](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+
+## Local Development
+
+This repository uses pnpm and commits `pnpm-lock.yaml` for reproducible installs.
+
 ```bash
-# Make sure that you've installed the dependencies
-npm install
-npm run site:dev
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm run test
+pnpm run build
+pnpm run site:dev
 ```
 
+`pnpm run build` writes package artifacts to `dist`, including ESM, CJS, UMD,
+CSS, source maps, and type declarations.
+
+Build the documentation/demo site:
+
+```bash
+pnpm run site:build
+```
+
+The site build writes to `dist-site` so it does not overwrite package artifacts.
 
 ## License
 

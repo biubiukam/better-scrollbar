@@ -1,243 +1,241 @@
 import type { CSSProperties, HTMLProps, Key, PropsWithChildren, ReactElement } from "react"
 
-/** 滚动状态 */
+/** Current scroll state. */
 export interface ScrollState {
-	/** X轴滚动偏移 */
+	/** Horizontal scroll offset. */
 	x: number
-	/** Y轴滚动偏移 */
+	/** Vertical scroll offset. */
 	y: number
-	/** 可滚动宽度 */
+	/** Full scrollable content width. */
 	scrollWidth: number
-	/** 可滚动高度 */
+	/** Full scrollable content height. */
 	scrollHeight: number
-	/** 滚动视区宽度 */
+	/** Viewport width. */
 	clientWidth: number
-	/** 滚动视区高度 */
+	/** Viewport height. */
 	clientHeight: number
-	/** 是否正在滚动 */
+	/** Whether a scroll interaction is currently active. */
 	isScrolling: boolean
 }
 
-/** 滚动偏移 */
+/** Target scroll offset. */
 export interface ScrollOffset {
-	/** X轴上的偏移 */
+	/** Horizontal offset. */
 	x: number
-	/** Y轴上的偏移 */
+	/** Vertical offset. */
 	y: number
 }
 
-/** 渲染元素 */
+/** Render callback for customizable elements. */
 export type RenderElement<Props> = (props?: PropsWithChildren<Props>) => ReactElement
 
 export interface ItemsRenderedInfo {
-	/** 实际渲染的起始索引，包含 overscan */
+	/** First rendered index, including overscan. */
 	startIndex: number
-	/** 实际渲染的结束索引，包含 overscan */
+	/** Last rendered index, including overscan. */
 	endIndex: number
-	/** 可视区域起始索引 */
+	/** First visible index. */
 	visibleStartIndex: number
-	/** 可视区域结束索引 */
+	/** Last visible index. */
 	visibleEndIndex: number
 }
 
 export type RenderItem = (index: number) => ReactElement
 
 export interface AdaptiveOverscanOptions {
-	/** 最小 overscan 条数，默认使用 overscan */
+	/** Minimum overscan item count. Defaults to the base overscan. */
 	min?: number
-	/** 最大 overscan 条数，默认至少为 overscan */
+	/** Maximum overscan item count. Defaults to at least the base overscan. */
 	max?: number
-	/** 按单次滚动距离放大的系数 */
+	/** Multiplier applied to the latest scroll distance. */
 	velocityFactor?: number
-	/** 按像素/毫秒滚动速度放大的系数 */
+	/** Multiplier applied to scroll velocity in px/ms. */
 	timeFactor?: number
 }
 
 export interface OverscanRange {
-	/** 向可视区前方额外渲染的数量或像素 */
+	/** Extra items or pixels rendered before the viewport. */
 	before: number
-	/** 向可视区后方额外渲染的数量或像素 */
+	/** Extra items or pixels rendered after the viewport. */
 	after: number
 }
 
 export interface VirtualAccessibilityOptions {
-	/** 容器语义角色，表格/网格场景建议使用 grid/table/treegrid */
+	/** Container role. Use grid, table, or treegrid for tabular scenarios. */
 	role?: "list" | "grid" | "table" | "treegrid" | "listbox"
-	/** 容器可访问名称 */
+	/** Accessible name for the container. */
 	label?: string
-	/** 逻辑总行数；默认使用 itemCount/children 数量 */
+	/** Logical row count. Defaults to itemCount or the number of children. */
 	rowCount?: number
-	/** 渲染条目的语义角色；grid/table/treegrid 默认 row，list/listbox 默认 listitem/option */
+	/** Rendered item role. Grid-like roles default to row; listbox defaults to option. */
 	itemRole?: string
 }
 
 export type ScrollSeekPlaceholder = (index: number) => ReactElement
 
 export interface ScrollSeekOptions {
-	/** 进入占位渲染的滚动速度阈值，单位为 px/ms */
+	/** Velocity threshold, in px/ms, used to enter placeholder rendering. */
 	velocityThreshold?: number
-	/** 退出占位渲染的滚动速度阈值，默认是 velocityThreshold 的一半 */
+	/** Velocity threshold used to leave placeholder rendering. Defaults to half of velocityThreshold. */
 	exitVelocityThreshold?: number
-	/** 高速滚动时用于替代真实行的轻量占位渲染 */
+	/** Lightweight placeholder renderer used during fast scrolling. */
 	placeholder?: ScrollSeekPlaceholder
-	/** 占位渲染状态变化回调 */
+	/** Called when placeholder rendering becomes active or inactive. */
 	onChange?: (active: boolean) => void
 }
 
 export type ScrollMode = "controlled" | "native"
 
-// (props?: PropsWithChildren<Props>) => ReactElement | ForwardRefExoticComponent<PropsWithoutRef<Instance> & RefAttributes<PropsWithChildren<Props>>>
-
-/** 组件Props */
+/** Virtual scrollbar props. */
 export interface VirtualScrollBarProps {
-	/** 开始滚动回调 */
+	/** Called when scrolling starts. */
 	onScrollStart?: () => void
-	/** 结束滚动回调 */
+	/** Called when scrolling ends. */
 	onScrollEnd?: () => void
 	/**
-	 * @description 滚动回调
-	 * @param {ScrollState} scrollState 滚动状态
+	 * @description Called whenever scroll state changes.
+	 * @param {ScrollState} scrollState Current scroll state.
 	 */
 	onScroll?: (scrollState: ScrollState) => void
-	/** 是否需要虚拟滚动 */
+	/** Enables virtual rendering. */
 	isVirtual?: boolean
-	/** 按索引渲染的数据总数，用于百万级列表避免创建完整 children 数组 */
+	/** Total indexed item count for large lists that should not create a full children array. */
 	itemCount?: number
-	/** 按索引惰性渲染 item；提供 itemCount 时优先使用该模式 */
+	/** Lazy item renderer used with itemCount. */
 	renderItem?: RenderItem
-	/** 按索引生成稳定 key；默认使用 index */
+	/** Stable key generator for indexed items. Defaults to the index. */
 	itemKey?: (index: number) => Key
-	/** 外层容器样式 */
+	/** Class name for the outer container. */
 	className?: string
-	/** 外层容器内联样式 */
+	/** Inline style for the outer container. */
 	style?: CSSProperties
-	/** 单条数据默认高度 */
+	/** Default item height. */
 	itemHeight?: number
-	/** 未测量数据的预估高度，优先级高于 itemHeight */
+	/** Estimated height for unmeasured items. Takes precedence over itemHeight. */
 	estimatedItemHeight?: number
-	/** 可保留的已测量行高数量上限，用于限制超大列表长时间滚动后的缓存内存 */
+	/** Maximum measured item heights retained in memory. */
 	heightCacheLimit?: number
-	/** 可视区域外额外渲染的条目数量 */
+	/** Extra item count rendered outside the visible viewport. */
 	overscan?: number
-	/** 可视区域外按像素额外渲染的范围，适合动态高度列表 */
+	/** Extra pixel range rendered outside the viewport, useful for dynamic-height lists. */
 	overscanPixels?: number | OverscanRange
-	/** 根据滚动方向和滚动距离动态扩大前置/后置渲染范围 */
+	/** Expands before/after overscan dynamically by scroll direction and distance. */
 	adaptiveOverscan?: boolean | AdaptiveOverscanOptions
-	/** 虚拟模式下最多渲染的条目数量；不会裁掉真实可视区 */
+	/** Maximum rendered item count in virtual mode. The visible range is never clipped. */
 	maxRenderedItems?: number
-	/** 高速滚动时使用轻量占位项，降低重行渲染成本 */
+	/** Uses lightweight placeholders during fast scrolling. */
 	scrollSeek?: boolean | ScrollSeekOptions
-	/** wheel 输入模式；native 使用浏览器原生滚动管线，controlled 保持自定义滚动控制 */
+	/** Wheel input mode. Native uses the browser scroll pipeline; controlled keeps custom handling. */
 	scrollMode?: ScrollMode
-	/** 数据插入或测量变化时保持当前可见条目锚定 */
+	/** Keeps the current visible item anchored when data or measurements change. */
 	maintainVisibleContentPosition?: boolean
-	/** 已在底部时，追加数据后继续贴住底部 */
+	/** Keeps the viewport pinned to the bottom after append when it was already at the bottom. */
 	followOutput?: boolean
-	/** 判断“已在底部”的像素阈值 */
+	/** Pixel threshold used to decide whether the viewport is at the bottom. */
 	followOutputThreshold?: number
-	/** 保留 children 模式下已渲染条目的 React 状态；会渲染全部 children 并隐藏非可视项 */
+	/** Keeps children-mode items mounted to preserve React state while hiding non-visible items. */
 	preserveItemState?: boolean
-	/** 始终保持吸顶语义的条目索引，常用于分组头 */
+	/** Item indexes that should stay sticky, commonly used for group headers. */
 	stickyIndices?: number[]
-	/** 每组数据条数；组件按 GroupedVirtuoso 风格推导每组头所在的扁平索引 */
+	/** Item counts per group; group header indexes are derived from the flattened GroupedVirtuoso-style model. */
 	groupCounts?: number[]
-	/** 虚拟列表的可访问性语义和 ARIA 行信息 */
+	/** Accessibility semantics and ARIA row metadata for virtualized lists. */
 	accessibility?: boolean | VirtualAccessibilityOptions
-	/** 浏览器物理滚动容器最大高度，用于超大逻辑滚动范围映射 */
+	/** Maximum physical browser scroll height used to map massive logical ranges. */
 	maxBrowserScrollHeight?: number
-	/** 渲染区间变化回调 */
+	/** Called when rendered ranges change. */
 	onItemsRendered?: (info: ItemsRenderedInfo) => void
-	/** 样式前缀 */
+	/** CSS class prefix. */
 	prefixCls?: string
-	/** 滚动容器宽度 */
+	/** Scroll viewport width. */
 	width?: number
-	/** 滚动容器高度 */
+	/** Scroll viewport height. */
 	height?: number
-	/** 滚动条粗细 */
+	/** Scrollbar thickness. */
 	scrollBarSize?: number
-	/** 滚动条是否隐藏 */
+	/** Hides custom scrollbars. */
 	scrollBarHidden?: boolean
-	/** 滚动条隐藏延时 */
+	/** Delay before auto-hiding the scrollbar. */
 	scrollBarAutoHideTimeout?: number
 	/**
-	 * @description 绘制滚动区域
+	 * @description Renders the scroll view.
 	 * @param {(HTMLAttributes<HTMLDivElement>) => React.ReactElement} props
 	 */
 	renderView?: RenderElement<HTMLProps<HTMLDivElement>>
 	/**
-	 * @description 绘制水平滚动轨
+	 * @description Renders the horizontal track.
 	 * @param {(HTMLAttributes<HTMLDivElement>) => React.ReactElement} props
 	 */
 	renderTrackHorizontal?: RenderElement<HTMLProps<HTMLDivElement>>
 	/**
-	 * @description 绘制垂直滚动轨
+	 * @description Renders the vertical track.
 	 * @param {(HTMLAttributes<HTMLDivElement>) => React.ReactElement} props
 	 */
 	renderTrackVertical?: RenderElement<HTMLProps<HTMLDivElement>>
 	/**
-	 * @description 绘制垂直滚动滑块
+	 * @description Renders the horizontal thumb.
 	 * @param {(HTMLAttributes<HTMLDivElement>) => React.ReactElement} props
 	 */
 	renderThumbHorizontal?: RenderElement<HTMLProps<HTMLDivElement>>
 	/**
-	 * @description 绘制垂直滚动滑块
+	 * @description Renders the vertical thumb.
 	 * @param {(HTMLAttributes<HTMLDivElement>) => React.ReactElement} props
 	 */
 	renderThumbVertical?: RenderElement<HTMLProps<HTMLDivElement>>
 }
 
 export interface VirtualScrollBarRef {
-	/** 滚动到指定位置 */
+	/** Scrolls to the requested offset. */
 	scrollTo: (offset: ScrollOffset) => void
-	/** 获取当前的滚动数据 */
+	/** Returns the current scroll state. */
 	getScrollState: () => ScrollState
-	/** 滚动、视区中的高宽变化回调 */
+	/** Registers a callback for current scroll content and viewport dimensions. */
 	resizeObserver: (callback: (resizeState: Pick<ScrollState, "scrollWidth" | "scrollHeight" | "clientWidth" | "clientHeight">) => void) => void
 }
 
 
 export interface ScrollBarProps {
-	/** 当前滚动状态 */
+	/** Current scroll state. */
 	scrollState: ScrollState
-	/** 当前可视区容器大小 */
+	/** Current viewport size on the scrollbar axis. */
 	containerSize: number
-	/** 内容最大高度 */
+	/** Maximum content size on the scrollbar axis. */
 	scrollRange: number
 	/**
-	 * @description 滚动回调
-	 * @param {number} offset 当前轴上的偏移位置
+	 * @description Called with the next offset on the current axis.
+	 * @param {number} offset Offset on the current axis.
 	 */
 	onScroll?: (offset: number) => void
-	/** 开始滚动的回调 */
+	/** Called when thumb dragging starts. */
 	onStartMove?: () => void
-	/** 停止滚动的回调 */
+	/** Called when thumb dragging stops. */
 	onStopMove?: () => void
-	/** 样式前缀 */
+	/** CSS class prefix. */
 	prefixCls?: string
-	/** 滚动条粗细 */
+	/** Scrollbar thumb size. */
 	thumbSize: {
-		/** 宽度 */
+		/** Thumb width. */
 		width: number
-		/** 高度 */
+		/** Thumb height. */
 		height: number
 	}
-	/** 滚动条是否隐藏 */
+	/** Whether the scrollbar is hidden. */
 	hidden?: boolean
-	/** 滚动条隐藏延时 */
+	/** Delay before auto-hiding the scrollbar. */
 	autoHideTimeout?: number
 	/**
-	 * @description 绘制垂直滚动轨
+	 * @description Renders the scrollbar track.
 	 * @param {(HTMLAttributes<HTMLDivElement>) => React.ReactElement} props
 	 */
 	renderTrack: RenderElement<HTMLProps<HTMLDivElement>>
 	/**
-	 * @description 绘制垂直滚动滑块
+	 * @description Renders the scrollbar thumb.
 	 * @param {(HTMLAttributes<HTMLDivElement>) => React.ReactElement} props
 	 */
 	renderThumb: RenderElement<HTMLProps<HTMLDivElement>>
 }
 
 export interface ScrollBarRef {
-	/** 延时隐藏滚动条 */
+	/** Shows the scrollbar and schedules it to hide later. */
 	delayHiddenScrollBar: () => void
 }

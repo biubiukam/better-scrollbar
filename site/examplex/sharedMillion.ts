@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { ItemsRenderedInfo, ScrollState } from "../../src"
 
-export const MILLION_ROW_COUNT = 50_000_000
+export const MILLION_ROW_COUNT = 100_000_000
 export const FIXED_MILLION_ROW_HEIGHT = 36
 export const ESTIMATED_MILLION_ROW_HEIGHT = 40
 export const PROGRESS_SCALE = 10_000
@@ -14,11 +14,11 @@ export const INITIAL_ITEMS_RENDERED: ItemsRenderedInfo = {
 }
 
 export const MILLION_JUMP_POINTS = [
-	{label: "起点", ratio: 0},
-	{label: "25%", ratio: 0.25},
-	{label: "中段", ratio: 0.5},
-	{label: "75%", ratio: 0.75},
-	{label: "末尾", ratio: 1},
+	{ label: "起点", ratio: 0 },
+	{ label: "25%", ratio: 0.25 },
+	{ label: "中段", ratio: 0.5 },
+	{ label: "75%", ratio: 0.75 },
+	{ label: "末尾", ratio: 1 },
 ]
 
 export function createInitialScrollState(): ScrollState {
@@ -126,7 +126,7 @@ export function formatVirtualRange(range: Pick<ItemsRenderedInfo, "startIndex" |
 		return "-"
 	}
 
-	return `${ range.startIndex.toLocaleString() } - ${ range.endIndex.toLocaleString() }`
+	return `${range.startIndex.toLocaleString()} - ${range.endIndex.toLocaleString()}`
 }
 
 export function useRafScrollState() {

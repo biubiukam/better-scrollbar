@@ -18,15 +18,15 @@ vi.mock("sortablejs", () => ({
 }))
 
 describe("ScenarioPlayground", () => {
-	it("renders the aggregated 50 million row playground with preset controls and a props snapshot", () => {
+	it("renders the aggregated 100 million row playground with preset controls and a props snapshot", () => {
 		const { getByRole, getByText } = render(<ScenarioPlayground/>)
 
-		expect(getByText("5000 万行虚拟列表实验台")).toBeTruthy()
+		expect(getByText("1 亿行虚拟列表实验台")).toBeTruthy()
 		expect(getByRole("button", {name: "基础大列表"})).toBeTruthy()
 		expect(getByRole("button", {name: "快速滚动"})).toBeTruthy()
 		expect(getByRole("button", {name: "分组表格"})).toBeTruthy()
-		expect(getByText("50,000,000")).toBeTruthy()
-		expect(getByText("itemCount: 50,000,000")).toBeTruthy()
+		expect(getByText("100,000,000")).toBeTruthy()
+		expect(getByText("itemCount: 100,000,000")).toBeTruthy()
 		expect(getByText("overscan: 4")).toBeTruthy()
 	})
 
@@ -57,7 +57,7 @@ describe("ScenarioPlayground", () => {
 		})
 
 		const stickyRow = container.querySelector(".scroll-bar-sticky-item")
-		const rows = Array.from(container.querySelectorAll(".scenario-playground-row"))
+		const rows = Array.from(container.querySelectorAll(".scroll-bar-wrapper .scenario-playground-row"))
 
 		expect(stickyRow?.textContent).toContain("Group 1")
 		expect(rows[0]?.textContent).toContain("Group 1")
@@ -99,7 +99,7 @@ describe("ScenarioPlayground", () => {
 		expect(rows[1]?.textContent).toContain("#1")
 	})
 
-	it("logs scenario operations and keeps mutations anchored to the 50 million row data set", () => {
+	it("logs scenario operations and keeps mutations anchored to the 100 million row data set", () => {
 		const { getByRole, getByText } = render(<ScenarioPlayground/>)
 
 		act(() => {
@@ -107,7 +107,7 @@ describe("ScenarioPlayground", () => {
 			fireEvent.click(getByRole("button", {name: "上方插入 20 条"}))
 		})
 
-		expect(getByText("50,000,020")).toBeTruthy()
+		expect(getByText("100,000,020")).toBeTruthy()
 		expect(getByText("跳转到 中段")).toBeTruthy()
 		expect(getByText("上方插入 20 条")).toBeTruthy()
 	})

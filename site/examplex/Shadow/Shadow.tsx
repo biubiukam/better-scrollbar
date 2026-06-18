@@ -12,7 +12,7 @@ import {
 	getRenderedCount,
 	useRafScrollState
 } from "../sharedMillion"
-import "./index.less"
+import { cn, demoTw } from "../tailwind"
 
 function Shadow() {
 	const shadowTop = useRef<HTMLDivElement>(null)
@@ -41,9 +41,9 @@ function Shadow() {
 
 	const renderItem = useCallback((index: number) => {
 		return (
-			<div className="shadow-million-item" style={{height: getFixedMillionRowHeight()}}>
-				<span>#{ (index + 1).toLocaleString() }</span>
-				<span>Row group { (index % 128) + 1 }</span>
+			<div className={ cn("shadow-million-item", demoTw.row) } style={{height: getFixedMillionRowHeight()}}>
+				<span className={ demoTw.rowIndex }>#{ (index + 1).toLocaleString() }</span>
+				<span className={ demoTw.rowTitle }>Row group { (index % 128) + 1 }</span>
 			</div>
 		)
 	}, [])
@@ -58,17 +58,17 @@ function Shadow() {
 	}, [scrollState.clientHeight, scrollState.scrollHeight])
 
 	return (
-		<div className="shadow-million-wrapper">
-			<div className="shadow-million-head">
+		<div className={ cn("shadow-million-wrapper", demoTw.shell) }>
+			<div className={ cn("shadow-million-head", demoTw.head) }>
 				<div>
-					<div className="shadow-million-title">阴影滚动条</div>
-					<div className="shadow-million-subtitle">{ MILLION_ROW_COUNT.toLocaleString() } rows / { FIXED_MILLION_ROW_HEIGHT }px fixed height</div>
+					<div className={ cn("shadow-million-title", demoTw.title) }>阴影滚动条</div>
+					<div className={ cn("shadow-million-subtitle", demoTw.subtitle) }>{ MILLION_ROW_COUNT.toLocaleString() } rows / { FIXED_MILLION_ROW_HEIGHT }px fixed height</div>
 				</div>
-				<div className={ `shadow-million-state ${ scrollState.isScrolling ? "is-active" : "" }` }>
+				<div className={ cn("shadow-million-state", demoTw.state, scrollState.isScrolling && "is-active", scrollState.isScrolling && demoTw.stateActive) }>
 					{ scrollState.isScrolling ? "Scrolling" : "Idle" }
 				</div>
 			</div>
-			<div className="shadow-million-list">
+			<div className={ cn("shadow-million-list", demoTw.listTall, "relative") }>
 				<VirtualScrollBar
 					ref={ ref }
 					itemCount={ MILLION_ROW_COUNT }
@@ -80,19 +80,19 @@ function Shadow() {
 					onScroll={ onScroll }
 					onItemsRendered={ setItemsRendered }
 				/>
-				<div ref={ shadowTop } className="shadow-million-top"/>
-				<div ref={ shadowBottom } className="shadow-million-bottom"/>
+				<div ref={ shadowTop } className="shadow-million-top pointer-events-none absolute inset-x-0 top-0 h-4 bg-gradient-to-b from-foreground/20 to-transparent opacity-0 transition-opacity duration-100"/>
+				<div ref={ shadowBottom } className="shadow-million-bottom pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-foreground/20 to-transparent opacity-0 transition-opacity duration-100"/>
 			</div>
-			<div className="shadow-million-result">
+			<div className={ cn("shadow-million-result", demoTw.result) }>
 				<span>DOM: { getRenderedCount(itemsRendered) }</span>
 				<span>Visible: { formatVirtualRange({
 					startIndex: itemsRendered.visibleStartIndex,
 					endIndex: itemsRendered.visibleEndIndex
 				}) }</span>
 				<span>Y: { Math.round(scrollState.y).toLocaleString() }</span>
-				<div className="shadow-million-jumps">
+				<div className="shadow-million-jumps ml-auto flex items-center gap-1.5">
 					{ MILLION_JUMP_POINTS.map((point) => (
-						<button key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
+						<button className={ demoTw.button } key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
 							{ point.label }
 						</button>
 					)) }

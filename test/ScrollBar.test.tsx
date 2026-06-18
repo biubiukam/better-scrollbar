@@ -1,10 +1,25 @@
 import { render, act, fireEvent } from "@testing-library/react"
-import VirtualScrollBar, { VirtualScrollBarRef } from "../src"
+import VirtualScrollBar, { ItemsRenderedInfo, VirtualScrollBarRef } from "../src"
+import { getResizeObserverEntryHeight } from "../src/hooks/useHeights"
 import React, { createRef } from "react"
 import { expect, describe, it, vi } from "vitest"
 import "../src/styles/index.less"
 
 const mockData = Array.from({ length: 20 }, (_, i) => i)
+
+function createTestRect(top: number, height: number): DOMRect {
+	return {
+		x: 0,
+		y: top,
+		top,
+		bottom: top + height,
+		left: 0,
+		right: 100,
+		width: 100,
+		height,
+		toJSON: () => ({})
+	} as DOMRect
+}
 
 describe("VirtualScrollBar", () => {
 	it("matches snapshot", () => {
@@ -633,6 +648,42 @@ describe("VirtualScrollBar", () => {
 		expect(document.querySelectorAll("[data-testid='overscan-item']")).toHaveLength(5)
 	})
 
+	it("does not re-emit unchanged item ranges when the callback identity changes", () => {
+		const calls: ItemsRenderedInfo[] = []
+
+		function RangeReporter() {
+			const [range, setRange] = React.useState<ItemsRenderedInfo | null>(null)
+
+			return (
+				<>
+					<VirtualScrollBar
+						height={60}
+						itemHeight={20}
+						overscan={2}
+						onItemsRendered={(nextRange) => {
+							calls.push(nextRange)
+							setRange(nextRange)
+						}}
+					>
+						{Array.from({ length: 10 }, (_, index) => (
+							<div key={index} data-testid="unstable-callback-item">
+								{index}
+							</div>
+						))}
+					</VirtualScrollBar>
+					<div data-testid="reported-range">
+						{range ? `${range.startIndex}-${range.endIndex}` : "pending"}
+					</div>
+				</>
+			)
+		}
+
+		const { getByTestId } = render(<RangeReporter />)
+
+		expect(calls).toHaveLength(1)
+		expect(getByTestId("reported-range").textContent).toBe("0-4")
+	})
+
 	it("does not call onScrollEnd on initial mount", () => {
 		const handleScrollEnd = vi.fn()
 
@@ -844,6 +895,157 @@ describe("VirtualScrollBar", () => {
 		rerender(renderList())
 
 		expect(ref.current?.getScrollState().y).toBe(80)
+	})
+
+	it("keeps indexed keyed rows anchored when rows are prepended before measured content", () => {
+		vi.useFakeTimers()
+		const OriginalResizeObserver = window.ResizeObserver
+		window.ResizeObserver = undefined as unknown as typeof ResizeObserver
+		const offsetHeightSpy = vi
+			.spyOn(HTMLElement.prototype, "offsetHeight", "get")
+			.mockImplementation(function getOffsetHeight(this: HTMLElement) {
+				return Number(this.getAttribute("data-height")) || 20
+			})
+		const ref = createRef<VirtualScrollBarRef>()
+		let prependedCount = 0
+		const renderList = () => (
+			<VirtualScrollBar
+				height={40}
+				estimatedItemHeight={20}
+				itemCount={4 + prependedCount}
+				itemKey={(index) => index < prependedCount ? `history-${index}` : `item-${index - prependedCount}`}
+				maintainVisibleContentPosition
+				overscan={0}
+				ref={ref}
+				renderItem={(index) => {
+					const businessIndex = index - prependedCount
+					return (
+						<div data-height={businessIndex === 0 ? 80 : 20}>
+							{index < prependedCount ? `history-${index}` : `item-${businessIndex}`}
+						</div>
+					)
+				}}
+			/>
+		)
+
+		try {
+			const { rerender } = render(renderList())
+			act(() => {
+				vi.runAllTimers()
+			})
+
+			prependedCount = 1
+			rerender(renderList())
+			act(() => {
+				vi.runAllTimers()
+			})
+
+			expect(ref.current?.getScrollState().y).toBe(20)
+			expect(ref.current?.getScrollState().scrollHeight).toBe(160)
+		} finally {
+			offsetHeightSpy.mockRestore()
+			window.ResizeObserver = OriginalResizeObserver
+			vi.useRealTimers()
+		}
+	})
+
+	it("keeps an indexed keyed top row fixed after a measured variable-height window prepends rows", () => {
+		vi.useFakeTimers()
+		const OriginalResizeObserver = window.ResizeObserver
+		window.ResizeObserver = undefined as unknown as typeof ResizeObserver
+		const getRowHeight = (index: number) => {
+			const pattern = index % 36
+			if (pattern === 0) {
+				return 68
+			}
+			if (pattern % 11 === 0) {
+				return 56
+			}
+			if (pattern % 5 === 0) {
+				return 46
+			}
+			return 34
+		}
+		const offsetHeightSpy = vi
+			.spyOn(HTMLElement.prototype, "offsetHeight", "get")
+			.mockImplementation(function getOffsetHeight(this: HTMLElement) {
+				return Number(this.getAttribute("data-height")) || 40
+			})
+		const ref = createRef<VirtualScrollBarRef>()
+		let prependedCount = 0
+		const renderList = () => (
+			<VirtualScrollBar
+				height={238}
+				estimatedItemHeight={40}
+				itemCount={50_000_000 + prependedCount}
+				itemKey={(index) => index < prependedCount ? `history-${index}` : `item-${index - prependedCount}`}
+				maintainVisibleContentPosition
+				overscan={20}
+				ref={ref}
+				renderItem={(index) => {
+					const isHistoryRow = index < prependedCount
+					const businessIndex = index - prependedCount
+					const height = isHistoryRow ? 40 : getRowHeight(businessIndex)
+					return (
+						<div data-height={height}>
+							{isHistoryRow ? `history-${index}` : `item-${businessIndex}`}
+						</div>
+					)
+				}}
+			/>
+		)
+
+		try {
+			const { rerender } = render(renderList())
+			act(() => {
+				vi.runAllTimers()
+			})
+
+			prependedCount = 20
+			rerender(renderList())
+			act(() => {
+				vi.runAllTimers()
+			})
+
+			expect(ref.current?.getScrollState().y).toBe(800)
+		} finally {
+			offsetHeightSpy.mockRestore()
+			window.ResizeObserver = OriginalResizeObserver
+			vi.useRealTimers()
+		}
+	})
+
+	it("measures ResizeObserver entries by border-box height", () => {
+		const element = document.createElement("div")
+		Object.defineProperty(element, "offsetHeight", {
+			configurable: true,
+			value: 40
+		})
+		const entry = {
+			contentRect: {height: 39},
+			borderBoxSize: [{blockSize: 40}]
+		} as unknown as ResizeObserverEntry
+		const fallbackEntry = {
+			contentRect: {height: 39}
+		} as unknown as ResizeObserverEntry
+		const objectBorderBoxEntry = {
+			contentRect: {height: 39},
+			borderBoxSize: {blockSize: 41}
+		} as unknown as ResizeObserverEntry
+
+		expect(getResizeObserverEntryHeight(entry, element)).toBe(40)
+		expect(getResizeObserverEntryHeight(fallbackEntry, element)).toBe(40)
+		expect(getResizeObserverEntryHeight(objectBorderBoxEntry, element)).toBe(41)
+		Object.defineProperty(element, "offsetHeight", {
+			configurable: true,
+			value: 0
+		})
+		expect(getResizeObserverEntryHeight({
+			contentRect: {height: 24}
+		} as unknown as ResizeObserverEntry, element)).toBe(24)
+		expect(getResizeObserverEntryHeight({
+			contentRect: {height: 0}
+		} as unknown as ResizeObserverEntry, element)).toBe(0)
 	})
 
 	it("falls back to the previous indexed anchor when the old item key cannot be found nearby", () => {
@@ -1410,7 +1612,7 @@ describe("VirtualScrollBar", () => {
 		window.ResizeObserver = OriginalResizeObserver
 	})
 
-	it("uses ResizeObserver entry sizes without reading layout", () => {
+	it("uses ResizeObserver border-box sizes without reading layout", () => {
 		const OriginalResizeObserver = window.ResizeObserver
 		const offsetHeightSpy = vi
 			.spyOn(HTMLElement.prototype, "offsetHeight", "get")
@@ -1450,13 +1652,14 @@ describe("VirtualScrollBar", () => {
 		const firstObservedElement = itemObserver.observe.mock.calls[0][0]
 
 		act(() => {
-			itemObserver.callback([
-				{
-					target: firstObservedElement,
-					contentRect: { height: 80 }
-				} as ResizeObserverEntry
-			], {} as ResizeObserver)
-		})
+				itemObserver.callback([
+					{
+						target: firstObservedElement,
+						contentRect: { height: 79 },
+						borderBoxSize: [{blockSize: 80}]
+					} as unknown as ResizeObserverEntry
+				], {} as ResizeObserver)
+			})
 
 		expect(ref.current?.getScrollState().scrollHeight).toBe(160)
 		expect(offsetHeightSpy).not.toHaveBeenCalled()
@@ -1900,6 +2103,327 @@ describe("VirtualScrollBar", () => {
 		expect(container.querySelector("[data-testid='row-13']")).not.toBeNull()
 	})
 
+	it("pins grouped sticky items in the top overlay and overlaps the next header while pushing away", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[2, 2]} ref={ref}>
+				<div key="group-0">Group A</div>
+				<div key="item-0-0">Item A-0</div>
+				<div key="item-0-1">Item A-1</div>
+				<div key="group-1">Group B</div>
+				<div key="item-1-0">Item B-0</div>
+				<div key="item-1-1">Item B-1</div>
+			</VirtualScrollBar>
+		)
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 59 })
+		})
+
+		const pushingStickyLayer = container.querySelector(".scroll-bar-sticky-layer") as HTMLElement
+		expect(pushingStickyLayer.textContent).toContain("Group A")
+		expect(pushingStickyLayer.style.transform).toBe("translateY(-18px)")
+
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 60 })
+		})
+
+		const stickyLayer = container.querySelector(".scroll-bar-sticky-layer") as HTMLElement
+		expect(stickyLayer).not.toBeNull()
+		expect(container.querySelector(".scroll-bar-inner-container > .scroll-bar-sticky-layer")).toBe(stickyLayer)
+		expect(stickyLayer.getAttribute("aria-hidden")).toBe("true")
+		expect(stickyLayer.textContent).toContain("Group B")
+	})
+
+	it("uses the rendered next sticky position when dynamic row heights shift the handoff distance", () => {
+		const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+		rectSpy.mockImplementation(function (this: HTMLElement) {
+			if (this.classList.contains("scroll-bar-inner-container")) {
+				return createTestRect(0, 40)
+			}
+			if (this.classList.contains("scroll-bar-sticky-item")) {
+				return createTestRect(0, 20)
+			}
+			if (this.dataset.testid === "group-b") {
+				return createTestRect(5, 20)
+			}
+			return createTestRect(0, 20)
+		})
+
+		try {
+			const ref = createRef<VirtualScrollBarRef>()
+			const renderStickyList = () => (
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[2, 2]} ref={ref}>
+					<div key="group-0">Group A</div>
+					<div key="item-0-0">Item A-0</div>
+					<div key="item-0-1">Item A-1</div>
+					<div key="group-1" data-testid="group-b">Group B</div>
+					<div key="item-1-0">Item B-0</div>
+					<div key="item-1-1">Item B-1</div>
+				</VirtualScrollBar>
+			)
+			const { container, rerender } = render(renderStickyList())
+
+			act(() => {
+				ref.current?.scrollTo({ x: 0, y: 59 })
+			})
+
+			const pushingStickyLayer = container.querySelector(".scroll-bar-sticky-layer") as HTMLElement
+			expect(pushingStickyLayer.textContent).toContain("Group A")
+			expect(pushingStickyLayer.style.transform).toBe("translateY(-14px)")
+
+			rerender(renderStickyList())
+			expect(pushingStickyLayer.style.transform).toBe("translateY(-14px)")
+		} finally {
+			rectSpy.mockRestore()
+		}
+	})
+
+	it("falls back to logical sticky distance when the measured next sticky distance is zero", () => {
+		const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+		rectSpy.mockImplementation(function (this: HTMLElement) {
+			if (this.classList.contains("scroll-bar-inner-container")) {
+				return createTestRect(0, 40)
+			}
+			if (this.classList.contains("scroll-bar-sticky-item")) {
+				return createTestRect(0, 20)
+			}
+			if (this.dataset.testid === "group-b") {
+				return createTestRect(0, 20)
+			}
+			return createTestRect(0, 20)
+		})
+
+		try {
+			const ref = createRef<VirtualScrollBarRef>()
+			const { container } = render(
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[2, 2]} ref={ref}>
+					<div key="group-0">Group A</div>
+					<div key="item-0-0">Item A-0</div>
+					<div key="item-0-1">Item A-1</div>
+					<div key="group-1" data-testid="group-b">Group B</div>
+					<div key="item-1-0">Item B-0</div>
+					<div key="item-1-1">Item B-1</div>
+				</VirtualScrollBar>
+			)
+
+			act(() => {
+				ref.current?.scrollTo({ x: 0, y: 59 })
+			})
+
+			const pushingStickyLayer = container.querySelector(".scroll-bar-sticky-layer") as HTMLElement
+			expect(pushingStickyLayer.style.transform).toBe("translateY(-18px)")
+		} finally {
+			rectSpy.mockRestore()
+		}
+	})
+
+	it("ignores non-finite measured sticky distances", () => {
+		const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+		rectSpy.mockImplementation(function (this: HTMLElement) {
+			if (this.classList.contains("scroll-bar-inner-container")) {
+				return createTestRect(0, 40)
+			}
+			if (this.classList.contains("scroll-bar-sticky-item")) {
+				return createTestRect(0, 20)
+			}
+			if (this.dataset.testid === "group-b") {
+				return createTestRect(Number.NaN, 20)
+			}
+			return createTestRect(0, 20)
+		})
+
+		try {
+			const ref = createRef<VirtualScrollBarRef>()
+			const { container } = render(
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[2, 2]} ref={ref}>
+					<div key="group-0">Group A</div>
+					<div key="item-0-0">Item A-0</div>
+					<div key="item-0-1">Item A-1</div>
+					<div key="group-1" data-testid="group-b">Group B</div>
+					<div key="item-1-0">Item B-0</div>
+					<div key="item-1-1">Item B-1</div>
+				</VirtualScrollBar>
+			)
+
+			act(() => {
+				ref.current?.scrollTo({ x: 0, y: 59 })
+			})
+
+			const pushingStickyLayer = container.querySelector(".scroll-bar-sticky-layer") as HTMLElement
+			expect(pushingStickyLayer.style.transform).toBe("translateY(-18px)")
+		} finally {
+			rectSpy.mockRestore()
+		}
+	})
+
+	it("clears cached sticky transition measurements when the handoff target cannot be measured anymore", () => {
+		let nextHeaderMode: "positive" | "zero" = "positive"
+		const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+		rectSpy.mockImplementation(function (this: HTMLElement) {
+			if (this.classList.contains("scroll-bar-inner-container")) {
+				return createTestRect(0, 40)
+			}
+			if (this.classList.contains("scroll-bar-sticky-item")) {
+				return createTestRect(0, 20)
+			}
+			if (this.dataset.testid === "group-b") {
+				return nextHeaderMode === "zero"
+					? createTestRect(0, 0)
+					: createTestRect(5, 20)
+			}
+			return createTestRect(0, 20)
+		})
+
+		try {
+			const ref = createRef<VirtualScrollBarRef>()
+			const renderTwoGroups = () => (
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[2, 2]} ref={ref}>
+					<div key="group-0">Group A</div>
+					<div key="item-0-0">Item A-0</div>
+					<div key="item-0-1">Item A-1</div>
+					<div key="group-1" data-testid="group-b">Group B</div>
+					<div key="item-1-0">Item B-0</div>
+					<div key="item-1-1">Item B-1</div>
+				</VirtualScrollBar>
+			)
+			const renderSingleGroup = () => (
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[5]} ref={ref}>
+					<div key="group-0">Group A</div>
+					<div key="item-0">Item 0</div>
+					<div key="item-1">Item 1</div>
+					<div key="item-2">Item 2</div>
+					<div key="item-3">Item 3</div>
+					<div key="item-4">Item 4</div>
+				</VirtualScrollBar>
+			)
+			const renderSparseStickyList = () => (
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} stickyIndices={[0, 20]} ref={ref}>
+					{Array.from({ length: 30 }, (_, index) => (
+						<div key={index}>{index === 0 ? "Group A" : index === 20 ? "Group C" : `Item ${index}`}</div>
+					))}
+				</VirtualScrollBar>
+			)
+			const renderPlainList = () => (
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} ref={ref}>
+					<div key="item-0">Item 0</div>
+					<div key="item-1">Item 1</div>
+					<div key="item-2">Item 2</div>
+					<div key="item-3">Item 3</div>
+					<div key="item-4">Item 4</div>
+					<div key="item-5">Item 5</div>
+				</VirtualScrollBar>
+			)
+			const { container, rerender } = render(renderTwoGroups())
+
+			act(() => {
+				ref.current?.scrollTo({ x: 0, y: 59 })
+			})
+			expect((container.querySelector(".scroll-bar-sticky-layer") as HTMLElement).style.transform).toBe("translateY(-14px)")
+
+			nextHeaderMode = "zero"
+			act(() => {
+				rerender(renderTwoGroups())
+			})
+			expect((container.querySelector(".scroll-bar-sticky-layer") as HTMLElement).style.transform).toBe("translateY(-18px)")
+
+			nextHeaderMode = "positive"
+			act(() => {
+				rerender(renderTwoGroups())
+			})
+			expect((container.querySelector(".scroll-bar-sticky-layer") as HTMLElement).style.transform).toBe("translateY(-14px)")
+
+			act(() => {
+				rerender(renderSingleGroup())
+			})
+			expect((container.querySelector(".scroll-bar-sticky-layer") as HTMLElement).style.transform).toBe("")
+
+			act(() => {
+				rerender(renderTwoGroups())
+			})
+			expect((container.querySelector(".scroll-bar-sticky-layer") as HTMLElement).style.transform).toBe("translateY(-14px)")
+
+			act(() => {
+				rerender(renderSparseStickyList())
+			})
+			expect((container.querySelector(".scroll-bar-sticky-layer") as HTMLElement).style.transform).toBe("")
+
+			act(() => {
+				rerender(renderPlainList())
+			})
+			expect(container.querySelector(".scroll-bar-sticky-layer")).toBeNull()
+		} finally {
+			rectSpy.mockRestore()
+		}
+	})
+
+	it("keeps the sticky overlay size stable when ResizeObserver reports the same height", () => {
+		const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(createTestRect(0, 20))
+		const originalResizeObserver = window.ResizeObserver
+		class ImmediateResizeObserver {
+			constructor(private readonly callback: ResizeObserverCallback) {}
+			observe() {
+				this.callback([], this as unknown as ResizeObserver)
+			}
+			disconnect() {}
+			unobserve() {}
+		}
+		window.ResizeObserver = ImmediateResizeObserver as unknown as typeof ResizeObserver
+
+		try {
+			const ref = createRef<VirtualScrollBarRef>()
+			const { container } = render(
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[2, 2]} ref={ref}>
+					<div key="group-0">Group A</div>
+					<div key="item-0-0">Item A-0</div>
+					<div key="item-0-1">Item A-1</div>
+					<div key="group-1">Group B</div>
+					<div key="item-1-0">Item B-0</div>
+					<div key="item-1-1">Item B-1</div>
+				</VirtualScrollBar>
+			)
+
+			act(() => {
+				ref.current?.scrollTo({ x: 0, y: 59 })
+			})
+
+			expect(container.querySelector(".scroll-bar-sticky-layer")).not.toBeNull()
+		} finally {
+			window.ResizeObserver = originalResizeObserver
+			rectSpy.mockRestore()
+		}
+	})
+
+	it("cleans up sticky overlay measurement raf when ResizeObserver is unavailable", () => {
+		const rectSpy = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(createTestRect(0, 20))
+		const originalResizeObserver = window.ResizeObserver
+		window.ResizeObserver = undefined as unknown as typeof ResizeObserver
+
+		try {
+			const ref = createRef<VirtualScrollBarRef>()
+			const { container, unmount } = render(
+				<VirtualScrollBar height={40} itemHeight={20} overscan={0} groupCounts={[2, 2]} ref={ref}>
+					<div key="group-0">Group A</div>
+					<div key="item-0-0">Item A-0</div>
+					<div key="item-0-1">Item A-1</div>
+					<div key="group-1">Group B</div>
+					<div key="item-1-0">Item B-0</div>
+					<div key="item-1-1">Item B-1</div>
+				</VirtualScrollBar>
+			)
+
+			act(() => {
+				ref.current?.scrollTo({ x: 0, y: 59 })
+			})
+
+			expect(container.querySelector(".scroll-bar-sticky-layer")).not.toBeNull()
+			unmount()
+		} finally {
+			window.ResizeObserver = originalResizeObserver
+			rectSpy.mockRestore()
+		}
+	})
+
 	it("derives sticky group headers from groupCounts", () => {
 		const ref = createRef<VirtualScrollBarRef>()
 		const { container } = render(
@@ -2047,7 +2571,7 @@ describe("VirtualScrollBar", () => {
 		vi.useRealTimers()
 	})
 
-	it("maps native fallback scroll through compressed massive scroll coordinates", () => {
+	it("keeps native fallback scroll deltas local for massive logical ranges", () => {
 		const ref = createRef<VirtualScrollBarRef>()
 		const { container } = render(
 			<VirtualScrollBar
@@ -2065,9 +2589,14 @@ describe("VirtualScrollBar", () => {
 		)
 		const inner = container.querySelector(".scroll-bar-inner-container") as HTMLElement
 
-		fireEvent.scroll(inner, { target: { scrollTop: 900, scrollLeft: 0 } })
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 50_000_000 })
+		})
+		const physicalScrollTop = inner.scrollTop
 
-		expect(ref.current?.getScrollState().y).toBe(99_999_900)
+		fireEvent.scroll(inner, { target: { scrollTop: physicalScrollTop + 10, scrollLeft: 0 } })
+
+		expect(ref.current?.getScrollState().y).toBe(50_000_010)
 	})
 
 	it("updates offsets through the rendered vertical and horizontal thumbs", () => {
@@ -2145,6 +2674,58 @@ describe("VirtualScrollBar", () => {
 		})
 
 		expect(container.querySelector("[data-testid='drag-row']")?.textContent).toBe("4")
+		vi.useRealTimers()
+	})
+
+	it("does not move the native viewport before the dragged range has rendered", () => {
+		vi.useFakeTimers()
+		const observedRenderScrollTops: number[] = []
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar
+				height={100}
+				itemCount={1_000_000}
+				estimatedItemHeight={100}
+				maxBrowserScrollHeight={1000}
+				overscan={0}
+				renderItem={(index) => {
+					if (index > 0) {
+						const inner = document.querySelector(".scroll-bar-inner-container") as HTMLElement | null
+						observedRenderScrollTops.push(inner?.scrollTop ?? -1)
+					}
+					return (
+						<div key={index} data-testid="dragged-massive-row">
+							{index}
+						</div>
+					)
+				}}
+				ref={ref}
+			/>
+		)
+		const inner = container.querySelector(".scroll-bar-inner-container") as HTMLElement
+		const verticalThumb = container.querySelector(".scroll-bar-vertical-thumb") as HTMLElement
+		const verticalDown = new MouseEvent("mousedown", { bubbles: true })
+		Object.defineProperty(verticalDown, "pageY", { value: 0 })
+		const verticalMove = new MouseEvent("mousemove", { bubbles: true })
+		Object.defineProperty(verticalMove, "pageY", { value: 75 })
+
+		act(() => {
+			verticalThumb.dispatchEvent(verticalDown)
+		})
+		act(() => {
+			window.dispatchEvent(verticalMove)
+		})
+
+		expect(inner.scrollTop).toBe(0)
+		expect(ref.current?.getScrollState().y).toBe(0)
+
+		act(() => {
+			vi.advanceTimersByTime(20)
+		})
+
+		expect(observedRenderScrollTops).toContain(0)
+		expect(inner.scrollTop).toBeGreaterThan(0)
+		expect(ref.current?.getScrollState().y).toBe(99_999_900)
 		vi.useRealTimers()
 	})
 

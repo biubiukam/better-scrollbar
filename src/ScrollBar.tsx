@@ -16,6 +16,7 @@ import HorizontalScrollBar from "./components/HorizontalScrollBar"
 import { getSpinSize } from "./scrollUtil"
 import {
 	AdaptiveOverscanOptions,
+	ItemsRenderedInfo,
 	ScrollOffset,
 	ScrollState,
 	VirtualScrollBarProps,
@@ -37,6 +38,8 @@ type ScrollOffsetUpdater = number | ((preOffset: number) => number)
 const MAX_BROWSER_SCROLL_HEIGHT = 10_000_000
 const DEFAULT_MAX_RENDERED_ITEMS = 500
 const INDEXED_ANCHOR_SEARCH_RADIUS = 1_000
+const STICKY_PUSH_OVERLAP = 1
+const SCROLL_WINDOW_REBASE_RATIO = 0.25
 const ignoreItemMeasurement = () => undefined
 type ScrollDirection = -1 | 0 | 1
 interface ScrollActivity {
@@ -44,6 +47,16 @@ interface ScrollActivity {
 	delta: number
 	elapsedMs: number
 	deviceScale: number
+}
+interface StickyOverlaySize {
+	index: number
+	height: number
+}
+interface StickyTransitionDistance {
+	activeIndex: number
+	nextIndex: number
+	scrollY: number
+	distance: number
 }
 interface ScrollAnchorSnapshot {
 	key: React.Key
@@ -155,6 +168,14 @@ function isSameScrollState(left: ScrollState, right: ScrollState) {
 		left.isScrolling === right.isScrolling
 }
 
+function isSameItemsRenderedInfo(left: ItemsRenderedInfo | null, right: ItemsRenderedInfo) {
+	return left !== null &&
+		left.startIndex === right.startIndex &&
+		left.endIndex === right.endIndex &&
+		left.visibleStartIndex === right.visibleStartIndex &&
+		left.visibleEndIndex === right.visibleEndIndex
+}
+
 function getSafeBrowserScrollHeight(maxBrowserScrollHeight: number | undefined, clientHeight: number) {
 	const configuredHeight = typeof maxBrowserScrollHeight === "number" && Number.isFinite(maxBrowserScrollHeight)
 		? maxBrowserScrollHeight
@@ -169,6 +190,30 @@ function getSafeMaxRenderedItems(maxRenderedItems: number) {
 	}
 
 	return Math.max(Math.floor(maxRenderedItems), 0)
+}
+
+function getLogicalScrollWindowStart(
+	currentStart: number,
+	scrollTop: number,
+	logicalRange: number,
+	physicalRange: number
+) {
+	const maxWindowStart = Math.max(logicalRange - physicalRange, 0)
+	if (logicalRange <= physicalRange || maxWindowStart <= 0) {
+		return 0
+	}
+
+	const safeScrollTop = Math.min(Math.max(scrollTop, 0), logicalRange)
+	const safeCurrentStart = Math.min(Math.max(currentStart, 0), maxWindowStart)
+	const localTop = safeScrollTop - safeCurrentStart
+	const lowerRebaseEdge = physicalRange * SCROLL_WINDOW_REBASE_RATIO
+	const upperRebaseEdge = physicalRange * (1 - SCROLL_WINDOW_REBASE_RATIO)
+
+	if (localTop >= lowerRebaseEdge && localTop <= upperRebaseEdge) {
+		return safeCurrentStart
+	}
+
+	return Math.min(Math.max(safeScrollTop - physicalRange / 2, 0), maxWindowStart)
 }
 
 function normalizeStickyIndices(indices: number[], itemCount: number) {
@@ -197,20 +242,82 @@ function getStickyIndicesFromGroupCounts(groupCounts: number[] | undefined, item
 	return stickyIndexes
 }
 
-function getActiveStickyIndex(stickyIndices: number[], visibleStartIndex: number) {
-	if (visibleStartIndex < 0 || stickyIndices.length === 0) {
+function getActiveStickyIndex(
+	stickyIndices: number[],
+	scrollOffset: number,
+	getOffset: (index: number) => number
+) {
+	if (scrollOffset < 0 || stickyIndices.length === 0) {
 		return undefined
 	}
 
 	let activeStickyIndex: number | undefined
-	for (const stickyIndex of stickyIndices) {
-		if (stickyIndex > visibleStartIndex) {
-			break
+	let left = 0
+	let right = stickyIndices.length - 1
+
+	while (left <= right) {
+		const middle = Math.floor((left + right) / 2)
+		const stickyIndex = stickyIndices[middle]
+
+		if (getOffset(stickyIndex) <= scrollOffset) {
+			activeStickyIndex = stickyIndex
+			left = middle + 1
+		} else {
+			right = middle - 1
 		}
-		activeStickyIndex = stickyIndex
 	}
 
 	return activeStickyIndex
+}
+
+function getNextStickyIndex(stickyIndices: number[], activeStickyIndex: number) {
+	let nextStickyIndex: number | undefined
+	let left = 0
+	let right = stickyIndices.length - 1
+
+	while (left <= right) {
+		const middle = Math.floor((left + right) / 2)
+		const stickyIndex = stickyIndices[middle]
+
+		if (stickyIndex > activeStickyIndex) {
+			nextStickyIndex = stickyIndex
+			right = middle - 1
+		} else {
+			left = middle + 1
+		}
+	}
+
+	return nextStickyIndex
+}
+
+function getStickyOverlayOffset(
+	stickyIndices: number[],
+	activeStickyIndex: number | undefined,
+	activeStickyHeightOverride: number | undefined,
+	nextStickyDistanceOverride: number | undefined,
+	stickyDistanceAdjustment: number,
+	scrollOffset: number,
+	itemCount: number,
+	getOffset: (index: number) => number
+) {
+	if (activeStickyIndex === undefined) {
+		return 0
+	}
+
+	const nextStickyIndex = getNextStickyIndex(stickyIndices, activeStickyIndex)
+	if (nextStickyIndex === undefined) {
+		return 0
+	}
+
+	const activeStickyHeight = Math.max(
+		activeStickyHeightOverride
+			?? getOffset(Math.min(activeStickyIndex + 1, itemCount)) - getOffset(activeStickyIndex),
+		0
+	)
+	const nextStickyDistance = nextStickyDistanceOverride
+		?? getOffset(nextStickyIndex) - scrollOffset + stickyDistanceAdjustment
+
+	return Math.min(nextStickyDistance - activeStickyHeight + STICKY_PUSH_OVERLAP, 0)
 }
 
 function isGridRole(role: string) {
@@ -283,21 +390,24 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		return childNodes[index]?.key ?? index
 	}, [childNodes, itemKey, useIndexedRendering])
 	
-	// 可见视图区域
+	// Visible viewport container.
 	const viewContainerRef = useRef<HTMLDivElement>({} as HTMLDivElement)
-	// 滚动区域
+	// Logical scroll content container.
 	const scrollContainerRef = useRef<HTMLDivElement>({} as HTMLDivElement)
 	const itemRefCallbackCacheRef = useRef(new Map<React.Key, {
 		index: number
 		callback: (element: HTMLElement | null) => void
 	}>())
-	// 滚动条
+	const itemElementMapRef = useRef(new Map<number, HTMLElement>())
+	const stickyOverlayItemRef = useRef<HTMLElement | null>(null)
+	// Custom scrollbar instances.
 	const verticalScrollBarInstance = useRef<ScrollBarRef>({} as ScrollBarRef)
 	const horizontalScrollBarInstance = useRef<ScrollBarRef>({} as ScrollBarRef)
 	const {setInstanceRef, pruneHeights, heightIndex, updatedMark} = useHeights({
 		itemCount: totalItemCount,
 		estimatedItemHeight,
-		heightCacheLimit
+		heightCacheLimit,
+		preserveMeasuredHeightsOnItemCountChange: !useIndexedRendering || itemKey === undefined
 	})
 	
 	const [scrollState, setScrollState] = useState<ScrollState>({
@@ -370,6 +480,8 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const shouldUseVirtualRendering = isVirtual || shouldForceVirtualRendering
 	const scrollActivityRef = useRef<ScrollActivity>({direction: 0, delta: 0, elapsedMs: 16, deviceScale: 1})
 	const [scrollSeekActive, setScrollSeekActive] = useState(false)
+	const [stickyOverlaySize, setStickyOverlaySize] = useState<StickyOverlaySize | null>(null)
+	const [stickyTransitionDistance, setStickyTransitionDistance] = useState<StickyTransitionDistance | null>(null)
 	const scrollSeekActiveRef = useRef(false)
 	const adaptiveOverscanOptions = useMemo(() => {
 		return getAdaptiveOverscanOptions(adaptiveOverscan, baseOverscan)
@@ -454,8 +566,66 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	}, [groupCounts, stickyIndices, totalItemCount])
 
 	const activeStickyIndex = useMemo(() => {
-		return getActiveStickyIndex(normalizedStickyIndices, visibleStartIndex)
-	}, [normalizedStickyIndices, visibleStartIndex])
+		return getActiveStickyIndex(normalizedStickyIndices, scrollState.y, (index) => heightIndex.getOffset(index))
+	}, [heightIndex, normalizedStickyIndices, scrollState.y, updatedMark])
+	const activeNextStickyIndex = useMemo(() => {
+		return activeStickyIndex === undefined
+			? undefined
+			: getNextStickyIndex(normalizedStickyIndices, activeStickyIndex)
+	}, [activeStickyIndex, normalizedStickyIndices])
+	const setStickyOverlayItemRef = useCallback((element: HTMLElement | null) => {
+		stickyOverlayItemRef.current = element
+	}, [])
+
+	useLayoutEffect(() => {
+		if (activeStickyIndex === undefined) {
+			setStickyOverlaySize((current) => current === null ? current : null)
+			return
+		}
+
+		const element = stickyOverlayItemRef.current
+		if (!element) {
+			return
+		}
+
+		const updateStickyOverlaySize = () => {
+			const nextHeight = element.getBoundingClientRect().height
+			if (!(nextHeight > 0)) {
+				return
+			}
+
+			setStickyOverlaySize((current) => {
+				if (
+					current?.index === activeStickyIndex
+					&& Math.abs(current.height - nextHeight) < 0.5
+				) {
+					return current
+				}
+
+				return {index: activeStickyIndex, height: nextHeight}
+			})
+		}
+
+		updateStickyOverlaySize()
+		const measureRaf = raf(updateStickyOverlaySize)
+
+		if (typeof ResizeObserver === "undefined") {
+			return () => {
+				raf.cancel(measureRaf)
+			}
+		}
+
+		const observer = new ResizeObserver(updateStickyOverlaySize)
+		observer.observe(element)
+
+		return () => {
+			raf.cancel(measureRaf)
+			observer.disconnect()
+		}
+	}, [activeStickyIndex])
+	const activeStickyOverlayHeight = stickyOverlaySize !== null && stickyOverlaySize.index === activeStickyIndex
+		? stickyOverlaySize.height
+		: undefined
 
 	const accessibilityOptions = useMemo(() => {
 		if (!accessibility) {
@@ -506,13 +676,26 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		}
 	}, [accessibilityOptions])
 
+	const lastItemsRenderedRef = useRef<ItemsRenderedInfo | null>(null)
 	useEffect(() => {
-		onItemsRendered?.({
+		if (!onItemsRendered) {
+			lastItemsRenderedRef.current = null
+			return
+		}
+
+		const nextItemsRendered = {
 			startIndex: start,
 			endIndex: end,
 			visibleStartIndex,
 			visibleEndIndex
-		})
+		}
+
+		if (isSameItemsRenderedInfo(lastItemsRenderedRef.current, nextItemsRendered)) {
+			return
+		}
+
+		lastItemsRenderedRef.current = nextItemsRendered
+		onItemsRendered(nextItemsRendered)
 	}, [end, onItemsRendered, start, visibleEndIndex, visibleStartIndex])
 	
 	useEffect(() => {
@@ -535,6 +718,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const maxPhysicalScrollHeight = Math.max(physicalScrollHeight - clientHeight, 0)
 	const maxPhysicalScrollHeightRef = useRef(maxPhysicalScrollHeight)
 	maxPhysicalScrollHeightRef.current = maxPhysicalScrollHeight
+	const logicalScrollWindowStartRef = useRef(0)
 
 	const maxScrollWidth = Math.max(scrollState.scrollWidth - clientWidth, 0)
 	const maxScrollWidthRef = useRef(maxScrollWidth)
@@ -553,15 +737,25 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		const logicalRange = maxScrollHeightRef.current
 		const physicalRange = maxPhysicalScrollHeightRef.current
 		if (logicalRange <= 0 || physicalRange <= 0) {
+			logicalScrollWindowStartRef.current = 0
 			return 0
 		}
 
 		const nextTop = Math.min(Math.max(scrollTop, 0), logicalRange)
-		if (logicalRange === physicalRange) {
+		if (logicalRange <= physicalRange) {
+			logicalScrollWindowStartRef.current = 0
 			return nextTop
 		}
 
-		return (nextTop / logicalRange) * physicalRange
+		const nextWindowStart = getLogicalScrollWindowStart(
+			logicalScrollWindowStartRef.current,
+			nextTop,
+			logicalRange,
+			physicalRange
+		)
+		logicalScrollWindowStartRef.current = nextWindowStart
+
+		return nextTop - nextWindowStart
 	}, [])
 
 	const physicalToLogicalY = useCallback((scrollTop: number) => {
@@ -572,11 +766,18 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		}
 
 		const nextTop = Math.min(Math.max(scrollTop, 0), physicalRange)
-		if (logicalRange === physicalRange) {
+		if (logicalRange <= physicalRange) {
+			logicalScrollWindowStartRef.current = 0
 			return keepInVerticalRange(nextTop)
 		}
 
-		return keepInVerticalRange((nextTop / physicalRange) * logicalRange)
+		const nextWindowStart = Math.min(
+			Math.max(logicalScrollWindowStartRef.current, 0),
+			Math.max(logicalRange - physicalRange, 0)
+		)
+		logicalScrollWindowStartRef.current = nextWindowStart
+
+		return keepInVerticalRange(nextWindowStart + nextTop)
 	}, [keepInVerticalRange])
 
 	const keepInHorizontalRange = useCallback((newScrollLeft: number) => {
@@ -590,9 +791,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	
 	const detectScrollingInterval = useRef<ReturnType<typeof setTimeout>>()
 
-	/**
-	 * @description 延迟"是否滚动"的滚动状态变更
-	 */
+	/** Delays the transition back to the non-scrolling state. */
 	const delayScrollStateChange = useCallback(() => {
 		clearTimeout(detectScrollingInterval.current)
 		
@@ -630,7 +829,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 
 	const onUpdateScrollOffset = useCallback((
 		offset: Partial<Record<"x" | "y", ScrollOffsetUpdater>>,
-		options: { sync?: boolean, elapsedMs?: number } = {}
+		options: { sync?: boolean, elapsedMs?: number, deferNativeSync?: boolean } = {}
 	) => {
 		const previousScrollState = scrollStateRef.current
 		const nextX = offset.x === undefined
@@ -664,7 +863,9 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			isScrolling: true
 		}
 
-		syncNativeScrollOffset(nextX, nextY)
+		if (!options.deferNativeSync) {
+			syncNativeScrollOffset(nextX, nextY)
+		}
 		commitScrollState(nextScrollState, options.sync)
 		delayScrollStateChange()
 	}, [
@@ -681,6 +882,41 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	useLayoutEffect(() => {
 		syncNativeScrollOffset(scrollState.x, scrollState.y)
 	}, [physicalScrollHeight, scrollState.x, scrollState.y, syncNativeScrollOffset])
+
+	const stickyOverlayOffset = useMemo(() => {
+		const expectedPhysicalScrollTop = logicalToPhysicalY(scrollState.y)
+		const actualPhysicalScrollTop = viewContainerRef.current?.scrollTop ?? expectedPhysicalScrollTop
+		const measuredNextStickyDistance =
+			stickyTransitionDistance !== null
+			&& stickyTransitionDistance.activeIndex === activeStickyIndex
+			&& stickyTransitionDistance.nextIndex === activeNextStickyIndex
+			&& stickyTransitionDistance.scrollY === scrollState.y
+			&& stickyTransitionDistance.distance > 0
+				? stickyTransitionDistance.distance
+				: undefined
+
+		return getStickyOverlayOffset(
+			normalizedStickyIndices,
+			activeStickyIndex,
+			activeStickyOverlayHeight,
+			measuredNextStickyDistance,
+			expectedPhysicalScrollTop - actualPhysicalScrollTop,
+			scrollState.y,
+			totalItemCount,
+			(index) => heightIndex.getOffset(index)
+		)
+	}, [
+		activeStickyIndex,
+		activeNextStickyIndex,
+		activeStickyOverlayHeight,
+		heightIndex,
+		logicalToPhysicalY,
+		normalizedStickyIndices,
+		scrollState.y,
+		stickyTransitionDistance,
+		totalItemCount,
+		updatedMark
+	])
 
 	const anchorSnapshotRef = useRef<ScrollAnchorSnapshot | null>(null)
 	const anchorVersionRef = useRef<{
@@ -800,11 +1036,11 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	])
 
 	const onUpdateScrollState = useCallback((scrollTop: ScrollOffsetUpdater) => {
-		onUpdateScrollOffset({y: scrollTop}, {sync: true})
+		onUpdateScrollOffset({y: scrollTop}, {sync: true, deferNativeSync: true})
 	}, [onUpdateScrollOffset])
 
 	const onUpdateHorizontalScrollState = useCallback((scrollLeft: ScrollOffsetUpdater) => {
-		onUpdateScrollOffset({x: scrollLeft}, {sync: true})
+		onUpdateScrollOffset({x: scrollLeft}, {sync: true, deferNativeSync: true})
 	}, [onUpdateScrollOffset])
 	
 	useEffect(() => {
@@ -872,7 +1108,14 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 			return cached.callback
 		}
 
-		const callback = (element: HTMLElement | null) => setInstanceRef(key, index, element)
+		const callback = (element: HTMLElement | null) => {
+			if (element) {
+				itemElementMapRef.current.set(index, element)
+			} else {
+				itemElementMapRef.current.delete(index)
+			}
+			setInstanceRef(key, index, element)
+		}
 		itemRefCallbackCacheRef.current.set(key, {index, callback})
 
 		const renderedRangeSize = Math.max(end - start + 1, 1)
@@ -889,11 +1132,10 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 
 		return callback
 	}, [end, safeMaxRenderedItems, setInstanceRef, start])
-	const getVirtualItemProps = useCallback((index: number): React.HTMLAttributes<HTMLElement> => {
-		const isActiveSticky = index === activeStickyIndex
+	const getVirtualItemProps = useCallback((index: number, options: { sticky?: boolean } = {}): React.HTMLAttributes<HTMLElement> => {
 		return {
 			...getItemAccessibilityProps(index),
-			...(isActiveSticky
+			...(options.sticky
 				? {
 					className: `${ prefixCls }-sticky-item`,
 					style: {
@@ -904,7 +1146,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 				}
 				: {})
 		}
-	}, [activeStickyIndex, getItemAccessibilityProps, prefixCls])
+	}, [getItemAccessibilityProps, prefixCls])
 
 	const listChildren = useMemo(() => {
 		const renderedNodes: React.ReactElement[] = []
@@ -953,8 +1195,51 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		useIndexedRendering
 	])
 
+	useLayoutEffect(() => {
+		if (activeStickyIndex === undefined || activeNextStickyIndex === undefined) {
+			setStickyTransitionDistance((current) => current === null ? current : null)
+			return
+		}
+
+		const viewContainer = viewContainerRef.current
+		const nextStickyElement = itemElementMapRef.current.get(activeNextStickyIndex)
+		if (!viewContainer || !nextStickyElement) {
+			setStickyTransitionDistance((current) => current === null ? current : null)
+			return
+		}
+
+		const nextStickyRect = nextStickyElement.getBoundingClientRect()
+		if (!(nextStickyRect.height > 0)) {
+			setStickyTransitionDistance((current) => current === null ? current : null)
+			return
+		}
+
+		const nextDistance = nextStickyRect.top - viewContainer.getBoundingClientRect().top
+		if (!Number.isFinite(nextDistance)) {
+			return
+		}
+
+		setStickyTransitionDistance((current) => {
+			if (
+				current?.activeIndex === activeStickyIndex
+				&& current.nextIndex === activeNextStickyIndex
+				&& current.scrollY === scrollState.y
+				&& Math.abs(current.distance - nextDistance) < 0.5
+			) {
+				return current
+			}
+
+			return {
+				activeIndex: activeStickyIndex,
+				nextIndex: activeNextStickyIndex,
+				scrollY: scrollState.y,
+				distance: nextDistance
+			}
+		})
+	}, [activeNextStickyIndex, activeStickyIndex, listChildren, scrollState.y])
+
 	const stickyOverlay = useMemo(() => {
-		if (activeStickyIndex === undefined || (activeStickyIndex >= start && activeStickyIndex <= end)) {
+		if (activeStickyIndex === undefined) {
 			return null
 		}
 
@@ -965,12 +1250,22 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 
 		const key = getItemKey(activeStickyIndex)
 		return (
-			<div className={ `${ prefixCls }-sticky-layer` } style={ {position: "sticky", top: 0, zIndex: 1, height: 0} }>
+			<div
+				aria-hidden="true"
+				className={ `${ prefixCls }-sticky-layer` }
+				style={ {
+					position: "sticky",
+					top: 0,
+					zIndex: 1,
+					height: 0,
+					...(stickyOverlayOffset < 0 ? {transform: `translateY(${ stickyOverlayOffset }px)`} : {})
+				} }
+			>
 				<Item
 					key={ `sticky-${ key }` }
 					useWrapper
-					setRef={ () => undefined }
-					itemProps={ getVirtualItemProps(activeStickyIndex) }
+					setRef={ setStickyOverlayItemRef }
+					itemProps={ getVirtualItemProps(activeStickyIndex, {sticky: true}) }
 				>
 					{ node }
 				</Item>
@@ -979,12 +1274,12 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	}, [
 		activeStickyIndex,
 		childNodes,
-		end,
 		getItemKey,
 		getVirtualItemProps,
 		prefixCls,
 		renderItem,
-		start,
+		setStickyOverlayItemRef,
+		stickyOverlayOffset,
 		useIndexedRendering
 	])
 
@@ -1013,7 +1308,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		horizontalScrollBarInstance.current?.delayHiddenScrollBar()
 	}, [])
 	
-	// 当数据大小减小时。它可能会触发本地滚动事件以适应滚动位置
+	// Native scrolling may fire while the browser adjusts scrollTop after content shrinks.
 	const lastNativeScrollTimeRef = useRef<number | null>(null)
 	const onFallbackScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
 		const {scrollLeft: newScrollLeft, scrollTop: newPhysicalScrollTop} = event.currentTarget
@@ -1098,13 +1393,13 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 				onMouseEnter={ delayHideScrollBar }
 				onScroll={ onFallbackScroll }
 			>
+				{ stickyOverlay }
 				<div
 					ref={ scrollContainerRef }
 					style={ scrollContainerStyle }
 					className={ clsx(`${ prefixCls }-container`) }
 					onScroll={ event => event.preventDefault() }
 				>
-					{ stickyOverlay }
 					{
 						cloneElement(
 							renderView({

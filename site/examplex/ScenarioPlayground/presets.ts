@@ -19,7 +19,7 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
 	{
 		id: "baseline",
 		label: "基础大列表",
-		description: "固定高度、基础 overscan，观察 5000 万行 indexed rendering 的默认成本。",
+		description: "固定高度、基础 overscan，观察 1 亿行 indexed rendering 的默认成本。",
 		config: BASE_SCENARIO_CONFIG
 	},
 	{

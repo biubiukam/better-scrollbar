@@ -1,6 +1,6 @@
 @scroll-bar-prefix-cls: ~"scroll-bar";
 
-/* 隐藏滚动条 */
+/* Hide native scrollbars. */
 .@{scroll-bar-prefix-cls} {
 	&-outer-container {
 		width: 100%;
@@ -13,11 +13,11 @@
 		position: relative;
 		width: 100%;
 		height: 100%;
-		-ms-overflow-style: none; /* IE 和 Edge */
+		-ms-overflow-style: none; /* IE and Edge */
 		scrollbar-width: none; /* Firefox */
 		overflow: -moz-scrollbars-none; /* Firefox */
 
-		/* 兼容 Chrome 和 Safari */
+		/* Chrome and Safari compatibility. */
 		&::-webkit-scrollbar {
 			display: none;
 		}

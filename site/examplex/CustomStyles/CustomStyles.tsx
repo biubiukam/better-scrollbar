@@ -12,7 +12,7 @@ import {
 	getRenderedCount,
 	getToneChannel
 } from "../sharedMillion"
-import "./index.less"
+import { cn, demoTw } from "../tailwind"
 
 function CustomStyles() {
 	const ref = useRef<VirtualScrollBarRef>({} as VirtualScrollBarRef)
@@ -50,6 +50,7 @@ function CustomStyles() {
 		return (
 			<div
 				{ ...props }
+				className={ cn(props?.className, "rounded-[inherit]") }
 				style={ {...props?.style, ...thumbStyle} }
 			/>
 		)
@@ -64,6 +65,7 @@ function CustomStyles() {
 		return (
 			<div
 				{ ...props }
+				className={ cn(props?.className, "transition-colors duration-150") }
 				style={ {...props?.style, ...viewStyle} }
 			/>
 		)
@@ -71,9 +73,9 @@ function CustomStyles() {
 
 	const renderItem = useCallback((index: number) => {
 		return (
-			<div className="custom-million-item" style={{height: FIXED_MILLION_ROW_HEIGHT}}>
-				<span>#{ (index + 1).toLocaleString() }</span>
-				<span>Theme sample { (index % 256) + 1 }</span>
+			<div className={ cn("custom-million-item", demoTw.row, "select-none border-t-foreground/10") } style={{height: FIXED_MILLION_ROW_HEIGHT}}>
+				<span className={ demoTw.rowIndex }>#{ (index + 1).toLocaleString() }</span>
+				<span className={ demoTw.rowTitle }>Theme sample { (index % 256) + 1 }</span>
 			</div>
 		)
 	}, [])
@@ -81,15 +83,15 @@ function CustomStyles() {
 	const getItemKey = useCallback((index: number) => `custom-million-${ index }`, [])
 
 	return (
-		<div className="custom-million-wrapper">
-			<div className="custom-million-head">
+		<div className={ cn("custom-million-wrapper", demoTw.shell) }>
+			<div className={ cn("custom-million-head", demoTw.head) }>
 				<div>
-					<div className="custom-million-title">高度自定义样式</div>
-					<div className="custom-million-subtitle">{ MILLION_ROW_COUNT.toLocaleString() } rows / tone { tone }</div>
+					<div className={ cn("custom-million-title", demoTw.title) }>高度自定义样式</div>
+					<div className={ cn("custom-million-subtitle", demoTw.subtitle) }>{ MILLION_ROW_COUNT.toLocaleString() } rows / tone { tone }</div>
 				</div>
-				<div className="custom-million-state">DOM { getRenderedCount(itemsRendered) }</div>
+				<div className={ cn("custom-million-state", demoTw.state) }>DOM { getRenderedCount(itemsRendered) }</div>
 			</div>
-			<div className="custom-million-list">
+			<div className={ cn("custom-million-list", demoTw.listTall) }>
 				<VirtualScrollBar
 					ref={ ref }
 					itemCount={ MILLION_ROW_COUNT }
@@ -104,14 +106,14 @@ function CustomStyles() {
 					onItemsRendered={ setItemsRendered }
 				/>
 			</div>
-			<div className="custom-million-toolbar">
+			<div className={ cn("custom-million-toolbar", demoTw.toolbar, "border-t-0 pt-2.5") }>
 				{ MILLION_JUMP_POINTS.map((point) => (
-					<button key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
+					<button className={ demoTw.button } key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
 						{ point.label }
 					</button>
 				)) }
 			</div>
-			<div className="custom-million-result">
+			<div className={ cn("custom-million-result", demoTw.result) }>
 				<span>Total: { MILLION_ROW_COUNT.toLocaleString() }</span>
 				<span>Visible: { formatVirtualRange({
 					startIndex: itemsRendered.visibleStartIndex,

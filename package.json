@@ -2,6 +2,7 @@
 	"name": "better-scrollbar",
 	"version": "1.0.2",
 	"description": "Highly customizable, high-performance virtual list for big data rendering.",
+	"packageManager": "pnpm@10.11.0",
 	"keywords": [
 		"react",
 		"scroll",
@@ -10,29 +11,52 @@
 		"scroll-view",
 		"customizable"
 	],
-	"homepage": "https://kampiu.github.io/better-scrollbar/",
+	"homepage": "https://biubiukam.github.io/better-scrollbar/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/kampiu/better-scrollbar"
+		"url": "https://github.com/biubiukam/better-scrollbar"
+	},
+	"bugs": {
+		"url": "https://github.com/biubiukam/better-scrollbar/issues"
 	},
 	"license": "MIT",
 	"author": "biubiukam",
-	"main": "lib/index.js",
-	"module": "es/index.js",
-	"typings": "lib/index.d.ts",
+	"engines": {
+		"node": ">=18"
+	},
+	"main": "dist/better-scrollbar.cjs",
+	"module": "dist/better-scrollbar.es.mjs",
+	"unpkg": "dist/ScrollBar.min.js",
+	"typings": "dist/types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/better-scrollbar.es.mjs",
+			"require": "./dist/better-scrollbar.cjs",
+			"default": "./dist/better-scrollbar.es.mjs"
+		},
+		"./dist/ScrollBar.min.css": "./dist/ScrollBar.min.css",
+		"./dist/ScrollBar.min.js": "./dist/ScrollBar.min.js",
+		"./dist/better-scrollbar.es.mjs": "./dist/better-scrollbar.es.mjs",
+		"./dist/better-scrollbar.cjs": "./dist/better-scrollbar.cjs"
+	},
+	"sideEffects": [
+		"**/*.css",
+		"**/*.less"
+	],
 	"files": [
-		"dist",
-		"lib",
-		"es"
+		"dist"
 	],
 	"scripts": {
-		"build": "father build",
-		"site:build": "tsc && vite build",
-		"site:dev": "vite",
+		"build": "vite build --config vite.config.lib.mts && tsc -p tsconfig.build.json",
+		"site:build": "tsc -p tsconfig.site.json && vite build --config vite.config.site.mts",
+		"site:dev": "vite --config vite.config.site.mts",
+		"typecheck": "tsc --noEmit",
 		"test": "vitest run --coverage",
 		"test:dev": "vitest",
 		"test:update": "vitest run --reporter=verbose --update-snapshots",
-		"coverage": "cat ./coverage/lcov.info | coveralls"
+		"coverage": "cat ./coverage/lcov.info | coveralls",
+		"prepack": "pnpm run build"
 	},
 	"devDependencies": {
 		"@babel/preset-env": "^7.23.5",
@@ -63,7 +87,6 @@
 		"eslint-plugin-prettier": "^4.0.0",
 		"eslint-plugin-react": "^7.30.0",
 		"eslint-plugin-react-hooks": "^4.5.0",
-		"father": "^4.4.0",
 		"jsdom": "^20.0.0",
 		"less": "^4.2.0",
 		"lucide-react": "^1.20.0",

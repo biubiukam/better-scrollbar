@@ -14,7 +14,7 @@ import {
 	getRenderedCount,
 	useRafScrollState
 } from "../sharedMillion"
-import "./index.less"
+import { cn, demoTw, toneRowTw } from "../tailwind"
 
 function RandomHeight() {
 	const ref = useRef<VirtualScrollBarRef>({} as VirtualScrollBarRef)
@@ -56,16 +56,16 @@ function RandomHeight() {
 		const rowTone = getMillionRowTone(index)
 
 		return (
-			<div className={ `random-million-item random-million-item--${ rowTone }` } style={{height}}>
-				<div className="random-million-main">
-					<span className="random-million-index">#{ (index + 1).toLocaleString() }</span>
+			<div className={ cn("random-million-item", `random-million-item--${ rowTone }`, demoTw.row, toneRowTw[rowTone]) } style={{height}}>
+				<div className="random-million-main flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-muted-foreground">
+					<span className={ cn("random-million-index", demoTw.rowIndex, "min-w-[86px]") }>#{ (index + 1).toLocaleString() }</span>
 					<span>{ getMillionRowStatus(index) }</span>
 					<span>{ height }px</span>
 				</div>
-				<div className="random-million-actions">
-					<button type="button" className="is-danger" onClick={ removeAt }>Remove</button>
-					<button type="button" onClick={ () => insertBefore(index) }>Before</button>
-					<button type="button" onClick={ insertAfter }>After</button>
+				<div className="random-million-actions flex shrink-0 items-center gap-1.5">
+					<button type="button" className={ cn("is-danger", demoTw.buttonDanger) } onClick={ removeAt }>Remove</button>
+					<button type="button" className={ demoTw.button } onClick={ () => insertBefore(index) }>Before</button>
+					<button type="button" className={ demoTw.button } onClick={ insertAfter }>After</button>
 				</div>
 			</div>
 		)
@@ -81,34 +81,34 @@ function RandomHeight() {
 	}, [scrollState.clientHeight, scrollState.scrollHeight])
 
 	return (
-		<div className="random-million-wrapper">
-			<div className="random-million-head">
+		<div className={ cn("random-million-wrapper", demoTw.shell) }>
+			<div className={ cn("random-million-head", demoTw.head) }>
 				<div>
-					<div className="random-million-title">动态高度</div>
-					<div className="random-million-subtitle">{ MILLION_ROW_COUNT.toLocaleString() } rows / indexed render</div>
+					<div className={ cn("random-million-title", demoTw.title) }>动态高度</div>
+					<div className={ cn("random-million-subtitle", demoTw.subtitle) }>{ MILLION_ROW_COUNT.toLocaleString() } rows / indexed render</div>
 				</div>
-				<div className={ `random-million-state ${ scrollState.isScrolling ? "is-active" : "" }` }>
+				<div className={ cn("random-million-state", demoTw.state, scrollState.isScrolling && "is-active", scrollState.isScrolling && demoTw.stateActive) }>
 					{ scrollState.isScrolling ? "Scrolling" : "Idle" }
 				</div>
 			</div>
-			<div className="random-million-metrics">
-				<div>
-					<span>总行数</span>
-					<strong>{ itemCount.toLocaleString() }</strong>
+			<div className={ cn("random-million-metrics", demoTw.metricGrid, "grid-cols-[1fr_1fr_1.4fr]") }>
+				<div className={ demoTw.metric }>
+					<span className={ demoTw.metricLabel }>总行数</span>
+					<strong className={ demoTw.metricValue }>{ itemCount.toLocaleString() }</strong>
 				</div>
-				<div>
-					<span>当前 DOM</span>
-					<strong>{ getRenderedCount(itemsRendered) }</strong>
+				<div className={ demoTw.metric }>
+					<span className={ demoTw.metricLabel }>当前 DOM</span>
+					<strong className={ demoTw.metricValue }>{ getRenderedCount(itemsRendered) }</strong>
 				</div>
-				<div>
-					<span>可见范围</span>
-					<strong>{ formatVirtualRange({
+				<div className={ demoTw.metric }>
+					<span className={ demoTw.metricLabel }>可见范围</span>
+					<strong className={ demoTw.metricValue }>{ formatVirtualRange({
 						startIndex: itemsRendered.visibleStartIndex,
 						endIndex: itemsRendered.visibleEndIndex
 					}) }</strong>
 				</div>
 			</div>
-			<div className="random-million-list">
+			<div className={ cn("random-million-list", demoTw.list) }>
 				<VirtualScrollBar
 					ref={ ref }
 					itemCount={ itemCount }
@@ -120,12 +120,12 @@ function RandomHeight() {
 					onItemsRendered={ setItemsRendered }
 				/>
 			</div>
-			<div className="random-million-toolbar">
+			<div className={ cn("random-million-toolbar", demoTw.toolbar) }>
 				<span>Y: { Math.round(scrollState.y).toLocaleString() }</span>
 				<span>Height: { Math.round(scrollState.scrollHeight).toLocaleString() }</span>
-				<div className="random-million-jumps">
+				<div className="random-million-jumps ml-auto flex items-center gap-1.5">
 					{ MILLION_JUMP_POINTS.map((point) => (
-						<button key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
+						<button className={ demoTw.button } key={ point.label } type="button" onClick={ () => jumpToRatio(point.ratio) }>
 							{ point.label }
 						</button>
 					)) }

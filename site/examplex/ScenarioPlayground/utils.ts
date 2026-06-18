@@ -14,7 +14,7 @@ export function getScenarioAccessibility(accessibilityMode: AccessibilityMode): 
 	if (accessibilityMode === "grid") {
 		return {
 			role: "grid",
-			label: "5000 万行虚拟列表实验台",
+			label: "1 亿行虚拟列表实验台",
 			rowCount: MILLION_ROW_COUNT,
 			itemRole: "row"
 		}

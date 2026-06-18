@@ -6,6 +6,7 @@ export interface UseHeightsOptions {
 	itemCount: number
 	estimatedItemHeight: number
 	heightCacheLimit?: number
+	preserveMeasuredHeightsOnItemCountChange?: boolean
 }
 
 const DEFAULT_HEIGHT_CACHE_LIMIT = 50_000
@@ -22,16 +23,39 @@ function normalizeHeightCacheLimit(heightCacheLimit: number | undefined) {
 	return Math.max(Math.floor(heightCacheLimit), 0)
 }
 
-function getResizeObserverEntryHeight(entry: ResizeObserverEntry, element: HTMLElement) {
+function getResizeObserverBoxBlockSize(boxSize: ResizeObserverEntry["borderBoxSize"] | undefined) {
+	const firstBoxSize = Array.isArray(boxSize) ? boxSize[0] : boxSize
+	const blockSize = firstBoxSize?.blockSize
+	if (typeof blockSize === "number" && Number.isFinite(blockSize) && blockSize > 0) {
+		return blockSize
+	}
+}
+
+export function getResizeObserverEntryHeight(entry: ResizeObserverEntry, element: HTMLElement) {
+	const borderBoxHeight = getResizeObserverBoxBlockSize(entry.borderBoxSize)
+	if (borderBoxHeight !== undefined) {
+		return borderBoxHeight
+	}
+
+	const offsetHeight = element.offsetHeight
+	if (typeof offsetHeight === "number" && Number.isFinite(offsetHeight) && offsetHeight > 0) {
+		return offsetHeight
+	}
+
 	const contentRectHeight = entry.contentRect?.height
 	if (typeof contentRectHeight === "number" && Number.isFinite(contentRectHeight) && contentRectHeight > 0) {
 		return contentRectHeight
 	}
 
-	return element.offsetHeight
+	return 0
 }
 
-export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOptions) => {
+export default ({
+	itemCount,
+	estimatedItemHeight,
+	heightCacheLimit,
+	preserveMeasuredHeightsOnItemCountChange = true
+}: UseHeightsOptions) => {
 	const safeItemCount = Math.max(Math.floor(itemCount), 0)
 	const safeEstimatedItemHeight = Math.max(estimatedItemHeight, 1)
 	const safeHeightCacheLimit = normalizeHeightCacheLimit(heightCacheLimit)
@@ -50,7 +74,8 @@ export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOp
 	const heightIndexOptionsRef = useRef({
 		itemCount: safeItemCount,
 		estimatedItemHeight: safeEstimatedItemHeight,
-		heightCacheLimit: safeHeightCacheLimit
+		heightCacheLimit: safeHeightCacheLimit,
+		preserveMeasuredHeightsOnItemCountChange
 	})
 	const [updatedMark, setUpdatedMark] = useState(0)
 	const collectRafRef = useRef<number>(-1)
@@ -78,18 +103,25 @@ export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOp
 	if (
 		heightIndexOptionsRef.current.itemCount !== safeItemCount ||
 		heightIndexOptionsRef.current.estimatedItemHeight !== safeEstimatedItemHeight ||
-		heightIndexOptionsRef.current.heightCacheLimit !== safeHeightCacheLimit
+		heightIndexOptionsRef.current.heightCacheLimit !== safeHeightCacheLimit ||
+		heightIndexOptionsRef.current.preserveMeasuredHeightsOnItemCountChange !== preserveMeasuredHeightsOnItemCountChange
 	) {
+		const itemCountChanged = heightIndexOptionsRef.current.itemCount !== safeItemCount
+		const shouldPreserveMeasuredHeights = !itemCountChanged || preserveMeasuredHeightsOnItemCountChange
+
 		heightIndexRef.current.reset({
 			itemCount: safeItemCount,
 			estimatedItemHeight: safeEstimatedItemHeight,
-			measuredHeights: getHeightsByIndexSnapshot(safeItemCount),
+			measuredHeights: shouldPreserveMeasuredHeights
+				? getHeightsByIndexSnapshot(safeItemCount)
+				: new Map(),
 			maxMeasuredItems: safeHeightCacheLimit
 		})
 		heightIndexOptionsRef.current = {
 			itemCount: safeItemCount,
 			estimatedItemHeight: safeEstimatedItemHeight,
-			heightCacheLimit: safeHeightCacheLimit
+			heightCacheLimit: safeHeightCacheLimit,
+			preserveMeasuredHeightsOnItemCountChange
 		}
 	}
 
@@ -234,6 +266,19 @@ export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOp
 
 	const setInstanceRef = useCallback(
 		(key: React.Key, index: number, instance: HTMLElement | null) => {
+			if (!instance) {
+				const currentIndex = keyIndexRef.current.get(key)
+				/* v8 ignore start -- protects browser-dependent stale null ref callbacks after keyed row moves */
+				if (currentIndex !== undefined && currentIndex !== index) {
+					return
+				}
+				/* v8 ignore stop */
+
+				instanceRef.current.delete(key)
+				unobserveKey(key)
+				return
+			}
+
 			const previousIndex = keyIndexRef.current.get(key)
 			if (previousIndex !== undefined && previousIndex !== index && indexKeyRef.current.get(previousIndex) === key) {
 				indexKeyRef.current.delete(previousIndex)
@@ -244,25 +289,24 @@ export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOp
 			if (previousKeyAtIndex !== undefined && previousKeyAtIndex !== key) {
 				heightIndexRef.current.deleteMeasuredHeight(index)
 			}
+			const shouldNotifyCachedHeightMove = previousIndex !== undefined && previousIndex !== index
 
 			keyIndexRef.current.set(key, index)
 			indexKeyRef.current.set(index, key)
 			unobserveKey(key)
-			if (instance) {
-				instanceRef.current.set(key, instance)
-				keyElementRef.current.set(key, instance)
-				elementKeyRef.current.set(instance, key)
-				const resizeObserver = getResizeObserver()
-				resizeObserver?.observe(instance)
-				const cachedHeight = heightsRef.current.get(key)
-				if (cachedHeight !== undefined) {
-					rememberMeasuredHeight(key, index, cachedHeight)
-				} else if (!resizeObserver) {
-					collectHeight()
+			instanceRef.current.set(key, instance)
+			keyElementRef.current.set(key, instance)
+			elementKeyRef.current.set(instance, key)
+			const resizeObserver = getResizeObserver()
+			resizeObserver?.observe(instance)
+			const cachedHeight = heightsRef.current.get(key)
+			if (cachedHeight !== undefined) {
+				rememberMeasuredHeight(key, index, cachedHeight)
+				if (shouldNotifyCachedHeightMove) {
+					setUpdatedMark((v) => v + 1)
 				}
-			} else {
-				instanceRef.current.delete(key)
-				unobserveKey(key)
+			} else if (!resizeObserver) {
+				collectHeight()
 			}
 		},
 		[collectHeight, getResizeObserver, rememberMeasuredHeight, unobserveKey]
@@ -292,7 +336,7 @@ export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOp
 		}
 	}, [clearMeasuredIndex, unobserveKey])
 
-	// 清理函数
+	// Cleanup resources owned by the shared measurement observer.
 	useEffect(() => {
 		return () => {
 			cancelRaf()
@@ -303,7 +347,7 @@ export default ({itemCount, estimatedItemHeight, heightCacheLimit}: UseHeightsOp
 		}
 	}, [cancelRaf])
 
-	// 返回优化后的API
+	// Return the optimized measurement API used by the virtual range calculator.
 	return {
 		setInstanceRef,
 		collectHeight,

@@ -54,6 +54,39 @@ describe("virtual range index", () => {
 		expect(performance.now() - startedAt).toBeLessThan(120)
 	})
 
+	it("keeps fixed-height massive ranges independent from block count", () => {
+		const startedAt = performance.now()
+		const index = createVirtualHeightIndex({
+			itemCount: 1_000_000,
+			estimatedItemHeight: 40,
+			blockSize: 1,
+		})
+
+		for (let i = 0; i < 5_000; i++) {
+			index.getRange({
+				scrollOffset: (i * 1_234_567) % index.totalHeight,
+				viewportSize: 800,
+				overscan: { before: 2, after: 4 },
+				overscanPixels: { before: 120, after: 160 },
+				maxItems: 40,
+			})
+		}
+
+		expect(performance.now() - startedAt).toBeLessThan(15)
+		expect(index.getRange({
+			scrollOffset: 39_999_200,
+			viewportSize: 800,
+			overscan: 1,
+		})).toEqual({
+			start: 999_979,
+			end: 999_999,
+			visibleStartIndex: 999_980,
+			visibleEndIndex: 999_999,
+			offset: 39_999_160,
+			scrollHeight: 40_000_000,
+		})
+	})
+
 	it("supports asymmetric overscan for direction-aware pre-rendering", () => {
 		const index = createVirtualHeightIndex({
 			itemCount: 20,

@@ -15,7 +15,7 @@ import {
 	formatVirtualRange,
 	getRenderedCount
 } from "../sharedMillion"
-import "./index.less"
+import { cn, demoTw } from "../tailwind"
 
 export const DragAndDrop: FC = () => {
 	const viewRef = useRef<HTMLDivElement | null>(null)
@@ -134,8 +134,8 @@ export const DragAndDrop: FC = () => {
 		sortableInstance.current = Sortable.create(node, {
 			animation: 120,
 			draggable: ".drag-million-item",
-			ghostClass: "drag-million-ghost",
-			chosenClass: "drag-million-chosen",
+			ghostClass: "opacity-20",
+			chosenClass: "bg-primary/10",
 			onEnd: onDragEnd
 		})
 	}, [onDragEnd])
@@ -150,11 +150,13 @@ export const DragAndDrop: FC = () => {
 
 	const renderItem = useCallback((index: number) => {
 		const sourceIndex = rowOrder[index] ?? index
-		const className = [
+		const className = cn(
 			"drag-million-item",
-			draggingIndex === index ? "drag-million-item--dragging" : "",
-			dropTargetIndex === index && draggingIndex !== index ? "drag-million-item--drop-target" : ""
-		].filter(Boolean).join(" ")
+			demoTw.gridRow,
+			"grid-cols-[104px_minmax(0,1fr)_52px] cursor-grab select-none active:cursor-grabbing",
+			draggingIndex === index && "drag-million-item--dragging opacity-60",
+			dropTargetIndex === index && draggingIndex !== index && "drag-million-item--drop-target bg-success/10 shadow-[inset_3px_0_0_hsl(var(--success))]"
+		)
 
 		return (
 			<div
@@ -166,9 +168,9 @@ export const DragAndDrop: FC = () => {
 				onDrop={ onNativeDrop(index) }
 				onDragEnd={ onNativeDragEnd }
 			>
-				<span className="drag-million-index">#{ (sourceIndex + 1).toLocaleString() }</span>
-				<span className="drag-million-title">Sortable row { (sourceIndex % 512) + 1 }</span>
-				<span className="drag-million-meta">{ FIXED_MILLION_ROW_HEIGHT }px</span>
+				<span className={ cn("drag-million-index", demoTw.rowIndex) }>#{ (sourceIndex + 1).toLocaleString() }</span>
+				<span className={ cn("drag-million-title", demoTw.rowTitle) }>Sortable row { (sourceIndex % 512) + 1 }</span>
+				<span className={ cn("drag-million-meta", demoTw.rowMeta, "text-right") }>{ FIXED_MILLION_ROW_HEIGHT }px</span>
 			</div>
 		)
 	}, [
@@ -184,15 +186,15 @@ export const DragAndDrop: FC = () => {
 	const getItemKey = useCallback((index: number) => `drag-million-${ index }`, [])
 
 	return (
-		<div className="drag-million-wrapper">
-			<div className="drag-million-head">
+		<div className={ cn("drag-million-wrapper", demoTw.shell) }>
+			<div className={ cn("drag-million-head", demoTw.head) }>
 				<div>
-					<div className="drag-million-title-main">拖拽</div>
-					<div className="drag-million-subtitle">{ MILLION_ROW_COUNT.toLocaleString() } rows / Sortable visible window</div>
+					<div className={ cn("drag-million-title-main", demoTw.title) }>拖拽</div>
+					<div className={ cn("drag-million-subtitle", demoTw.subtitle) }>{ MILLION_ROW_COUNT.toLocaleString() } rows / Sortable visible window</div>
 				</div>
-				<div className="drag-million-state">DOM { getRenderedCount(itemsRendered) }</div>
+				<div className={ cn("drag-million-state", demoTw.state) }>DOM { getRenderedCount(itemsRendered) }</div>
 			</div>
-			<div className="drag-million-list">
+			<div className={ cn("drag-million-list", demoTw.listTall, "min-h-[390px]") }>
 				<VirtualScrollBar
 					itemCount={ MILLION_ROW_COUNT }
 					itemKey={ getItemKey }
@@ -204,7 +206,7 @@ export const DragAndDrop: FC = () => {
 					onItemsRendered={ onItemsRendered }
 				/>
 			</div>
-			<div className="drag-million-result">
+			<div className={ cn("drag-million-result", demoTw.result) }>
 				<span>Total: { MILLION_ROW_COUNT.toLocaleString() }</span>
 				<span>Visible: { formatVirtualRange({
 					startIndex: itemsRendered.visibleStartIndex,
