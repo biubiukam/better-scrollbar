@@ -2,11 +2,7 @@
 	"compilerOptions": {
 		"target": "ESNext",
 		"useDefineForClassFields": true,
-		"lib": [
-			"DOM",
-			"DOM.Iterable",
-			"ESNext"
-		],
+		"lib": ["DOM", "DOM.Iterable", "ESNext"],
 		"allowJs": false,
 		"skipLibCheck": true,
 		"esModuleInterop": false,
@@ -22,12 +18,14 @@
 		"baseUrl": "./",
 		"composite": true,
 		"paths": {
-			"@/*": [
-				"./site/*"
-			],
-			"ScrollBar/*": [
-				"./src/*"
-			]
+			"@/*": ["./apps/site/*"],
+			"ScrollBar/*": ["./src/*"],
+			"@better-scrollbar/react": ["./packages/react/src/index.ts"],
+			"@better-scrollbar/react/*": ["./packages/react/src/*"],
+			"@better-scrollbar/vue": ["./packages/vue/src/index.ts"],
+			"@better-scrollbar/vue/*": ["./packages/vue/src/*"],
+			"@better-scrollbar/core": ["./packages/core/src/index.ts"],
+			"@better-scrollbar/core/*": ["./packages/core/src/*"]
 		}
 	},
 	"references": [
@@ -35,14 +33,13 @@
 			"path": "./tsconfig.node.json"
 		}
 	],
-	"exclude": [
-		"node_modules",
-		"dist",
-		"dist-site"
-	],
+	"exclude": ["node_modules", "dist", "apps/site/dist"],
 	"include": [
-		"site",
+		"apps/site",
 		"src",
+		"packages/react/src",
+		"packages/vue/src",
+		"packages/core/src",
 		"types/*.ts"
 	]
 }

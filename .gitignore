@@ -17,10 +17,12 @@ sketch
 /lib
 /es
 /dist
+packages/*/dist
+apps/*/dist
 dist-site
 coverage
+.turbo
 .idea
-.npmrc
 package-lock.json
 pnpm-lock.yaml
 yarn.lock

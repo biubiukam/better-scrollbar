@@ -49,56 +49,62 @@ pnpm run site:build      # Build the docs site
 ## Project Structure
 
 ```
-src/
-├── ScrollBar.tsx           # Main component
-├── index.ts                # Public entry point
-├── types.ts                # Public TypeScript types
-├── virtualRange.ts         # Virtual height index (Fenwick tree)
-├── scrollUtil.ts           # Scrollbar geometry calculations
-├── stickyUtils.ts          # Sticky row utilities
-├── raf.ts                  # requestAnimationFrame scheduler
-├── utils.ts                # Internal helpers
-├── defaultRenderElements.tsx
-├── components/             # Internal sub-components
-│   ├── ScrollBar.tsx       # Scrollbar track/thumb component
-│   ├── VerticalScrollBar.tsx
-│   ├── HorizontalScrollBar.tsx
-│   └── Item.tsx
-├── hooks/                  # React hooks
-│   ├── useHeights.ts
-│   └── useResizeObserver.ts
-└── styles/                 # Component styles (Less)
-
-site/                       # Documentation / demo site (Vite + React)
-test/                       # Test files (Vitest)
-docs/                       # Additional documentation
+packages/
+├── core/              # @better-scrollbar/core — algorithms, types, utilities
+│   ├── src/
+│   ├── tests/
+│   └── build/
+├── react/             # @better-scrollbar/react — React component & hooks
+│   ├── src/
+│   │   ├── ScrollBar.tsx       # Main component
+│   │   ├── components/         # Internal sub-components
+│   │   ├── hooks/              # React hooks
+│   │   └── styles/             # Component styles (Less)
+│   ├── tests/
+│   └── build/
+└── vue/               # @better-scrollbar/vue — Vue 3 component & composables
+    ├── src/
+    │   ├── BScrollBar.vue      # Main component
+    │   ├── components/         # Internal sub-components
+    │   ├── composables/        # Vue composables
+    │   └── styles/             # Component styles (Less)
+    ├── tests/
+    └── build/
+apps/
+└── site/              # Documentation site (React)
+docs/                  # Design docs and detailed API reference
 ```
 
 ## Making Changes
 
 1. Create a feature branch from `master`:
-   ```bash
-   git checkout -b feat/my-feature
-   ```
+    ```bash
+    git checkout -b feat/my-feature
+    ```
 2. Make your changes with clear, focused commits.
 3. Ensure type checking and tests pass:
-   ```bash
-   pnpm run typecheck && pnpm run test
-   ```
+    ```bash
+    pnpm run typecheck && pnpm run test
+    ```
 4. Open a pull request targeting `master`.
 
 ## Testing
 
-Tests are written with [Vitest](https://vitest.dev/) and
-[@testing-library/react](https://testing-library.com/docs/react-testing-library/intro/).
+Tests are distributed across each sub-package's `tests/` directory and are
+written with [Vitest](https://vitest.dev/),
+[@testing-library/react](https://testing-library.com/docs/react-testing-library/intro/),
+and [@vue/test-utils](https://test-utils.vuejs.org/).
 
 - Unit tests for core algorithms (e.g., `virtualRange.ts`) should not depend on
-  DOM simulation.
-- Component tests use `jsdom` and `@testing-library/react`.
+  DOM simulation and live in `packages/core/tests/`.
+- React component tests use `jsdom` and `@testing-library/react`
+  (`packages/react/tests/`).
+- Vue component tests use `jsdom` and `@vue/test-utils`
+  (`packages/vue/tests/`).
 - Run snapshot updates when intentional output changes occur:
-  ```bash
-  pnpm run test:update
-  ```
+    ```bash
+    pnpm run test:update
+    ```
 
 ## Pull Request Guidelines
 
@@ -141,15 +147,15 @@ Optional body with more detail.
 
 Common types:
 
-| Type | Usage |
-| --- | --- |
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
+| Type       | Usage                                                   |
+| ---------- | ------------------------------------------------------- |
+| `feat`     | New feature                                             |
+| `fix`      | Bug fix                                                 |
+| `docs`     | Documentation only                                      |
 | `refactor` | Code change that neither fixes a bug nor adds a feature |
-| `test` | Adding or updating tests |
-| `chore` | Tooling, CI, or dependency updates |
-| `perf` | Performance improvement |
+| `test`     | Adding or updating tests                                |
+| `chore`    | Tooling, CI, or dependency updates                      |
+| `perf`     | Performance improvement                                 |
 
 Examples:
 

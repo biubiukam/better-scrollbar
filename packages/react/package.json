@@ -1,0 +1,83 @@
+{
+	"name": "@better-scrollbar/react",
+	"version": "2.0.0",
+	"description": "React adapter for better-scrollbar — highly customizable, high-performance virtual scrollbar component.",
+	"license": "MIT",
+	"author": "biubiukam",
+	"type": "module",
+	"homepage": "https://biubiukam.github.io/better-scrollbar/",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/biubiukam/better-scrollbar.git",
+		"directory": "packages/react"
+	},
+	"bugs": {
+		"url": "https://github.com/biubiukam/better-scrollbar/issues"
+	},
+	"keywords": [
+		"react",
+		"virtual-scroll",
+		"virtual-list",
+		"virtualization",
+		"scrollbar",
+		"custom-scrollbar",
+		"infinite-scroll",
+		"large-list",
+		"dynamic-height",
+		"high-performance"
+	],
+	"engines": {
+		"node": ">=18"
+	},
+	"main": "dist/better-scrollbar-react.cjs",
+	"module": "dist/better-scrollbar-react.es.mjs",
+	"unpkg": "dist/BetterScrollbarReact.min.js",
+	"types": "dist/types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/better-scrollbar-react.es.mjs",
+			"require": "./dist/better-scrollbar-react.cjs",
+			"default": "./dist/better-scrollbar-react.es.mjs"
+		},
+		"./styles/ScrollBar.less": "./src/styles/ScrollBar.less"
+	},
+	"sideEffects": [
+		"**/*.css",
+		"**/*.less"
+	],
+	"files": [
+		"dist",
+		"src/styles",
+		"LICENSE"
+	],
+	"scripts": {
+		"build": "vite build --config vite.config.mts && tsc -p tsconfig.json --emitDeclarationOnly",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"test": "vitest run --config vitest.config.mts",
+		"clean": "rimraf dist"
+	},
+	"dependencies": {
+		"clsx": "^2.1.0"
+	},
+	"peerDependencies": {
+		"@better-scrollbar/core": ">=1.0.0",
+		"react": ">=16.9.0",
+		"react-dom": ">=16.9.0"
+	},
+	"devDependencies": {
+		"@better-scrollbar/core": "workspace:*",
+		"@testing-library/react": "^14.0.0",
+		"@types/node": "^20.10.3",
+		"@types/react": "^18.2.43",
+		"@types/react-dom": "^18.2.17",
+		"@vitejs/plugin-react": "^4.2.0",
+		"jsdom": "^20.0.0",
+		"less": "^4.2.0",
+		"react": ">=16.9.0",
+		"react-dom": ">=16.9.0",
+		"typescript": "^5.3.2",
+		"vite": "^5.0.8",
+		"vitest": "^1.0.4"
+	}
+}

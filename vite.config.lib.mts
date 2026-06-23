@@ -34,7 +34,7 @@ export default defineConfig((): UserConfig => {
 				cssFileName: "ScrollBar.min",
 			},
 			rollupOptions: {
-				external: ["react", "react-dom"],
+				external: ["react", "react-dom", "@better-scrollbar/core", "@better-scrollbar/react"],
 				output: {
 					assetFileNames: (assetInfo) => {
 						if (assetInfo.name === "style.css") {
@@ -47,6 +47,8 @@ export default defineConfig((): UserConfig => {
 					globals: {
 						react: "React",
 						"react-dom": "ReactDOM",
+						"@better-scrollbar/core": "BetterScrollbarCore",
+						"@better-scrollbar/react": "BetterScrollbarReact",
 					},
 				},
 			},

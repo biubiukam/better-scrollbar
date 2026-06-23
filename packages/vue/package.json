@@ -1,0 +1,77 @@
+{
+	"name": "@better-scrollbar/vue",
+	"version": "1.0.0",
+	"description": "Vue 3 adapter for better-scrollbar — highly customizable, high-performance virtual scrollbar component.",
+	"license": "MIT",
+	"author": "biubiukam",
+	"type": "module",
+	"homepage": "https://biubiukam.github.io/better-scrollbar/",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/biubiukam/better-scrollbar.git",
+		"directory": "packages/vue"
+	},
+	"bugs": {
+		"url": "https://github.com/biubiukam/better-scrollbar/issues"
+	},
+	"keywords": [
+		"vue",
+		"vue3",
+		"virtual-scroll",
+		"virtual-list",
+		"virtualization",
+		"scrollbar",
+		"custom-scrollbar",
+		"composition-api",
+		"large-list",
+		"high-performance"
+	],
+	"engines": {
+		"node": ">=18"
+	},
+	"main": "dist/better-scrollbar-vue.cjs",
+	"module": "dist/better-scrollbar-vue.es.mjs",
+	"unpkg": "dist/BetterScrollbarVue.min.js",
+	"types": "dist/types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/better-scrollbar-vue.es.mjs",
+			"require": "./dist/better-scrollbar-vue.cjs",
+			"default": "./dist/better-scrollbar-vue.es.mjs"
+		},
+		"./styles/ScrollBar.less": "./src/styles/ScrollBar.less"
+	},
+	"sideEffects": [
+		"**/*.css",
+		"**/*.less",
+		"**/*.vue"
+	],
+	"files": [
+		"dist",
+		"src/styles",
+		"LICENSE"
+	],
+	"scripts": {
+		"build": "vite build --config vite.config.mts && vue-tsc -p tsconfig.json --declaration --emitDeclarationOnly",
+		"typecheck": "vue-tsc -p tsconfig.json --noEmit",
+		"test": "vitest run --config vitest.config.mts",
+		"clean": "rimraf dist"
+	},
+	"peerDependencies": {
+		"@better-scrollbar/core": ">=1.0.0",
+		"vue": ">=3.3.0"
+	},
+	"devDependencies": {
+		"@better-scrollbar/core": "workspace:*",
+		"@vitejs/plugin-vue": "^5.2.4",
+		"@vue/test-utils": "^2.4.6",
+		"jsdom": "^20.0.0",
+		"less": "^4.2.0",
+		"typescript": "^5.3.2",
+		"vite": "^5.0.8",
+		"vitest": "^1.0.4",
+		"vue": "^3.5.24",
+		"vue-tsc": "^3.3.5"
+	}
+}

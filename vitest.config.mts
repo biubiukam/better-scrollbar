@@ -1,19 +1,22 @@
 /// <reference types="vitest" />
 /// <reference types="vitest/globals" />
 import { defineConfig } from "vitest/config"
-import { createReactPlugins, sharedCssConfig, siteResolveConfig } from "./vite.config.shared"
+import { createReactPlugins, createVuePlugins, sharedCssConfig, siteResolveConfig } from "./vite.config.shared"
 
 export default defineConfig({
-	plugins: createReactPlugins(),
+	plugins: [...createReactPlugins(), ...createVuePlugins()],
 	test: {
 		globals: true,
 		environment: "jsdom",
-		setupFiles: ["./test/setup.ts"],
-		include: ["**/*.test.(ts|tsx)"],
+		setupFiles: ["./apps/site/tests/setup.ts"],
+		include: [
+			"packages/*/tests/**/*.test.{ts,tsx}",
+			"apps/site/tests/**/*.test.{ts,tsx}"
+		],
 		coverage: {
 			reporter: ["text", "json", "html", "lcov"],
-			include: ["src/**/*.{ts,tsx}"],
-			exclude: ["node_modules/", "test/", "dist/", "lib/", "es/", "site/", "coverage/"],
+			include: ["packages/core/src/**/*.{ts,tsx}", "packages/react/src/**/*.{ts,tsx}", "packages/vue/src/**/*.{ts,vue}"],
+			exclude: ["node_modules/", "tests/", "dist/", "lib/", "es/", "apps/site/", "coverage/", "packages/*/dist/", "**/*.d.ts", "packages/react/src/virtualRange.ts"],
 			thresholds: {
 				statements: 100,
 				branches: 100,

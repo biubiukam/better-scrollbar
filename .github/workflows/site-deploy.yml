@@ -1,57 +1,57 @@
 name: Deploy website
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
-  workflow_dispatch:
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
+    workflow_dispatch:
 
 permissions:
-  contents: write
+    contents: write
 
 concurrency:
-  group: pages-${{ github.ref }}
-  cancel-in-progress: true
+    group: pages-${{ github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Enable Corepack
-        run: corepack enable
+            - name: Enable Corepack
+              run: corepack enable
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: pnpm
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: pnpm run test
+            - name: Run tests
+              run: pnpm run test
 
-      - name: Upload coverage
-        if: github.event_name != 'pull_request'
-        uses: coverallsapp/github-action@v2
+            - name: Upload coverage
+              if: github.event_name != 'pull_request'
+              uses: coverallsapp/github-action@v2
 
-      - name: Build website
-        run: pnpm run site:build
-        env:
-          NODE_OPTIONS: "--max_old_space_size=4096"
+            - name: Build website
+              run: pnpm run site:build
+              env:
+                  NODE_OPTIONS: "--max_old_space_size=4096"
 
-      - name: Deploy to GitHub Pages
-        if: github.event_name != 'pull_request'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist-site
-          force_orphan: true
+            - name: Deploy to GitHub Pages
+              if: github.event_name != 'pull_request'
+              uses: peaceiris/actions-gh-pages@v4
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: ./dist-site
+                  force_orphan: true
