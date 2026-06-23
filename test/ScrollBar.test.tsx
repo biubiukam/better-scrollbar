@@ -348,6 +348,46 @@ describe("VirtualScrollBar", () => {
 		}
 	})
 
+	it("gracefully handles missing MutationObserver when items unmount", () => {
+		vi.useFakeTimers()
+		const OriginalResizeObserver = window.ResizeObserver
+		const OriginalMutationObserver = window.MutationObserver
+		window.ResizeObserver = undefined as unknown as typeof ResizeObserver
+		window.MutationObserver = undefined as unknown as typeof MutationObserver
+		const offsetHeightSpy = vi
+			.spyOn(HTMLElement.prototype, "offsetHeight", "get")
+			.mockReturnValue(20)
+		const ref = createRef<VirtualScrollBarRef>()
+		try {
+			const { rerender } = render(
+				<VirtualScrollBar height={40} itemHeight={20} ref={ref}>
+					{Array.from({ length: 4 }, (_, i) => (
+						<div key={`item-${i}`}>item-{i}</div>
+					))}
+				</VirtualScrollBar>
+			)
+
+			act(() => { vi.runAllTimers() })
+
+			rerender(
+				<VirtualScrollBar height={40} itemHeight={20} ref={ref}>
+					{Array.from({ length: 2 }, (_, i) => (
+						<div key={`item-${i}`}>item-{i}</div>
+					))}
+				</VirtualScrollBar>
+			)
+
+			act(() => { vi.runAllTimers() })
+
+			expect(ref.current?.getScrollState().scrollHeight).toBe(40)
+		} finally {
+			offsetHeightSpy.mockRestore()
+			window.MutationObserver = OriginalMutationObserver
+			window.ResizeObserver = OriginalResizeObserver
+			vi.useRealTimers()
+		}
+	})
+
 	it("uses estimatedItemHeight before rows are measured", () => {
 		const ref = createRef<VirtualScrollBarRef>()
 		render(
@@ -1288,6 +1328,28 @@ describe("VirtualScrollBar", () => {
 		})
 
 		expect(getRowInput("row-0").value).toBe("persisted")
+	})
+
+	it("defaults overscan items to 1 when only pixels config is provided", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const onItemsRendered = vi.fn()
+		render(
+			<VirtualScrollBar
+				height={40}
+				itemHeight={20}
+				overscan={{ pixels: { before: 0, after: 0 } }}
+				onItemsRendered={onItemsRendered}
+				ref={ref}
+			>
+				{Array.from({ length: 10 }, (_, i) => (
+					<div key={i}>{i}</div>
+				))}
+			</VirtualScrollBar>
+		)
+
+		const range = onItemsRendered.mock.calls.at(-1)?.[0]
+		expect(range.startIndex).toBe(0)
+		expect(range.endIndex).toBeGreaterThanOrEqual(2)
 	})
 
 	it("expands overscan in the active scroll direction when adaptiveOverscan is enabled", () => {
@@ -2593,6 +2655,18 @@ describe("VirtualScrollBar", () => {
 		)
 
 		expect(container.querySelector(".scroll-bar-wrapper")?.textContent).toContain("Group 0")
+	})
+
+	it("treats an empty groupCounts array as having no sticky headers", () => {
+		const ref = createRef<VirtualScrollBarRef>()
+		const { container } = render(
+			<VirtualScrollBar height={40} itemHeight={20} groupCounts={[]} ref={ref}>
+				<div key="a">A</div>
+				<div key="b">B</div>
+			</VirtualScrollBar>
+		)
+
+		expect(container.querySelector(".scroll-bar-sticky-item")).toBeNull()
 	})
 
 	it("adds virtualized list position metadata for indexed rendering", () => {

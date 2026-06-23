@@ -24,6 +24,15 @@ vi.mock("../src", async () => {
 
 	return {
 		default: MockVirtualScrollBar,
+		getStickyIndicesFromGroups: (groupCounts: number[]) => {
+			const indices: number[] = []
+			let next = 0
+			for (const count of groupCounts) {
+				indices.push(next)
+				next += Math.max(Math.floor(count), 0) + 1
+			}
+			return indices
+		},
 	}
 })
 

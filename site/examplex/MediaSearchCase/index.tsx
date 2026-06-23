@@ -14,14 +14,9 @@ import { cn, demoTw, toneRowTw } from "../../components/ExampleSupport/tailwind"
 
 const MEDIA_ROW_COUNT = 1_200_000
 const SCENARIO_DEMO_LIST_HEIGHT = 360
-const LOG_LIMIT = 4
 
 interface MediaSearchDemoProps {
 	copy?: ExampleCopy
-}
-
-function appendLog(logs: string[], message: string) {
-	return [message, ...logs].slice(0, LOG_LIMIT)
 }
 
 function Metric({ label, value }: { label: string, value: React.ReactNode }) {
@@ -122,25 +117,18 @@ export function MediaSearchDemo({ copy = DEFAULT_EXAMPLE_COPY }: MediaSearchDemo
 	const { itemsRendered, scheduleScrollState, scrollState, setItemsRendered } = useScrollTelemetry()
 	const [queryIndex, setQueryIndex] = useState(0)
 	const [compact, setCompact] = useState(false)
-	const [, setLogs] = useState<string[]>(() => [text.logs.initial])
 	const query = queries[queryIndex % queries.length]
-
-	const addLog = useCallback((log: string) => {
-		setLogs((currentLogs) => appendLog(currentLogs, log))
-	}, [])
 
 	const fastScroll = useCallback(() => {
 		const state = scrollerRef.current?.getScrollState() ?? scrollState
 		scrollerRef.current?.scrollTo({ x: 0, y: getJumpOffset(state.scrollHeight, state.clientHeight, 0.68) })
-		addLog(text.logs.fastScroll)
-	}, [addLog, scrollState, text.logs.fastScroll])
+	}, [scrollState])
 
 	const resetView = useCallback(() => {
 		setQueryIndex(0)
 		setCompact(false)
 		scrollerRef.current?.scrollTo({ x: 0, y: 0 })
-		addLog(text.logs.reset)
-	}, [addLog, text.logs.reset])
+	}, [])
 
 	return (
 		<div className={cn(demoTw.shell, "media-demo-wrapper")}>
@@ -190,13 +178,10 @@ export function MediaSearchDemo({ copy = DEFAULT_EXAMPLE_COPY }: MediaSearchDemo
 					)}
 				/>
 			</div>
-			<footer className={cn(demoTw.toolbar, "media-demo-toolbar")}>
+		<footer className={cn(demoTw.toolbar, "media-demo-toolbar")}>
 				<ActionButton
 					icon={<Search className="h-3.5 w-3.5" />}
-					onClick={() => {
-						setQueryIndex((currentIndex) => currentIndex + 1)
-						addLog(text.logs.query)
-					}}
+					onClick={() => setQueryIndex((currentIndex) => currentIndex + 1)}
 				>
 					{text.actions.switchQuery}
 				</ActionButton>
@@ -205,10 +190,7 @@ export function MediaSearchDemo({ copy = DEFAULT_EXAMPLE_COPY }: MediaSearchDemo
 				</ActionButton>
 				<ActionButton
 					icon={<ChevronsUp className="h-3.5 w-3.5" />}
-					onClick={() => {
-						setCompact((currentCompact) => !currentCompact)
-						addLog(text.logs.density)
-					}}
+					onClick={() => setCompact((currentCompact) => !currentCompact)}
 				>
 					{text.actions.toggleDensity}
 				</ActionButton>

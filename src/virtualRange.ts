@@ -196,6 +196,7 @@ class BlockVirtualHeightIndex implements VirtualHeightIndexStore {
 		}
 
 		const blockIndex = this.getBlockIndex(safeIndex)
+		/* v8 ignore next -- blockDeltas always exists when !isFixedHeight() */
 		const previousBlockDelta = this.blockDeltas?.sumBefore(blockIndex) ?? 0
 		const currentBlockDelta = this.getCurrentBlockDeltaBefore(blockIndex, safeIndex)
 

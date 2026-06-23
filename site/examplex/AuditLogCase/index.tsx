@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react"
-import { ArrowDown, Search, Zap } from "lucide-react"
+import { ArrowDown, RefreshCw, Search, Zap } from "lucide-react"
 import VirtualScrollBar from "../../../src"
 import type { ItemsRenderedInfo, VirtualScrollBarRef } from "../../../src"
 import { DEFAULT_EXAMPLE_COPY } from "../../i18n/examples"
@@ -95,6 +95,7 @@ export function AuditLogDemo({ copy = DEFAULT_EXAMPLE_COPY }: AuditLogDemoProps)
 	const text = copy.scenarioDemos.audit
 	const scrollerRef = useRef<VirtualScrollBarRef>(null)
 	const { itemsRendered, scheduleScrollState, scrollState, setItemsRendered } = useScrollTelemetry()
+	const [scrollMode, setScrollMode] = useState<"controlled" | "native">("controlled")
 
 	const jumpTo = useCallback((ratio: number) => {
 		const state = scrollerRef.current?.getScrollState() ?? scrollState
@@ -108,13 +109,13 @@ export function AuditLogDemo({ copy = DEFAULT_EXAMPLE_COPY }: AuditLogDemoProps)
 					<h3 className={demoTw.title}>{text.title}</h3>
 					<p className={demoTw.subtitle}>{text.subtitle}</p>
 				</div>
-				<div className={demoTw.state}>
-					controlled
+				<div className={cn(demoTw.state, scrollMode === "native" && demoTw.stateActive)}>
+					{`scrollMode: ${scrollMode}`}
 				</div>
 			</header>
 			<div className={cn(demoTw.metricGrid, "grid-cols-2 md:grid-cols-4")}>
 				<Metric label={text.metrics.rows} value={MILLION_ROW_COUNT.toLocaleString()} />
-				<Metric label={text.metrics.mode} value="controlled" />
+				<Metric label={text.metrics.mode} value={`scrollMode: ${scrollMode}`} />
 				<Metric label={copy.shared.visible} value={formatVirtualRange(itemsRendered)} />
 				<Metric label={copy.shared.rendered} value={getRenderedCount(itemsRendered).toLocaleString()} />
 			</div>
@@ -126,6 +127,7 @@ export function AuditLogDemo({ copy = DEFAULT_EXAMPLE_COPY }: AuditLogDemoProps)
 					itemCount={MILLION_ROW_COUNT}
 					estimatedItemHeight={AUDIT_ROW_HEIGHT}
 					overscan={5}
+					scrollMode={scrollMode}
 					maintainVisibleContentPosition
 					onItemsRendered={setItemsRendered}
 					onScroll={scheduleScrollState}
@@ -133,6 +135,11 @@ export function AuditLogDemo({ copy = DEFAULT_EXAMPLE_COPY }: AuditLogDemoProps)
 				/>
 			</div>
 			<footer className={cn(demoTw.toolbar, "audit-demo-toolbar")}>
+				<ActionButton icon={<RefreshCw className="h-3.5 w-3.5" />} onClick={() => {
+					setScrollMode((current) => current === "controlled" ? "native" : "controlled")
+				}}>
+					{scrollMode === "controlled" ? text.actions.switchNative : text.actions.switchControlled}
+				</ActionButton>
 				<ActionButton icon={<Zap className="h-3.5 w-3.5" />} onClick={() => jumpTo(0.82)}>
 					{text.actions.jumpRisk}
 				</ActionButton>

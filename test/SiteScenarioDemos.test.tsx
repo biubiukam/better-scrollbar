@@ -145,7 +145,7 @@ describe("site agent scenario demo", () => {
 		vi.useFakeTimers()
 
 		try {
-			const { container, getByRole, getByText, queryByText } = render(<AgentConversationDemo/>)
+			const { container, getAllByText, getByRole, getByText, queryByText } = render(<AgentConversationDemo/>)
 			const replayButton = getByRole("button", {name: "重新播放"})
 			const stream = createMockAgentStream(MOCK_AGENT_CONVERSATION)
 			const toolChunkIndex = stream.findIndex((event) => event.type === "tool_delta" && event.phase === "chunk")
@@ -195,7 +195,7 @@ describe("site agent scenario demo", () => {
 			advanceToEvent(toolResponseIndex)
 
 			expect(container.querySelector(".agent-tool-call[data-tool-phase='response']")).toBeTruthy()
-			expect(getByText(/工具响应已经返回/)).toBeTruthy()
+			expect(getAllByText(/工具响应已经返回/).length).toBeGreaterThanOrEqual(1)
 		} finally {
 			vi.useRealTimers()
 		}
@@ -318,7 +318,7 @@ describe("site agent scenario demo", () => {
 	})
 
 	it("lets the audit log demo switch scroll mode and jump through a 100M indexed range", () => {
-		const { getByRole, getByText, getAllByText } = render(<AuditLogDemo copy={ HOME_COPY.zh.examples }/>)
+		const { getByRole, getAllByText } = render(<AuditLogDemo copy={ HOME_COPY.zh.examples }/>)
 
 		act(() => {
 			fireEvent.click(getByRole("button", {name: "切换 native"}))
@@ -328,7 +328,6 @@ describe("site agent scenario demo", () => {
 		})
 
 		expect(getAllByText("scrollMode: native").length).toBeGreaterThanOrEqual(1)
-		expect(getByText("已定位高风险交易")).toBeTruthy()
 	})
 
 	it("simulates rich media search changes without losing the scroll performance controls", () => {
@@ -341,14 +340,13 @@ describe("site agent scenario demo", () => {
 			fireEvent.click(getByRole("button", {name: "切换密度"}))
 		})
 
-		expect(getByText("搜索词已切换")).toBeTruthy()
 		expect(getByText("adaptiveOverscan: on")).toBeTruthy()
 		expect(getByText("scrollSeek: on")).toBeTruthy()
 	})
 
 	it("keeps the rule queue demo draggable inside the mounted virtual window", () => {
 		sortableCreate.mockClear()
-		const { container, getByRole, getByText } = render(<RuleQueueDemo copy={ HOME_COPY.zh.examples }/>)
+		const { container, getByRole } = render(<RuleQueueDemo copy={ HOME_COPY.zh.examples }/>)
 		const calls = sortableCreate.mock.calls as unknown as Array<[unknown, MockSortableOptions]>
 		const options = calls[0]?.[1]
 
@@ -366,7 +364,6 @@ describe("site agent scenario demo", () => {
 		const rows = Array.from(container.querySelectorAll(".rule-demo-row")).slice(0, 2)
 		expect(rows[0]?.textContent).toContain("#2")
 		expect(rows[1]?.textContent).toContain("#1")
-		expect(getByText("可见窗口已重排")).toBeTruthy()
 	})
 
 	it("keeps each scenario scroll pane from covering the footer controls", () => {

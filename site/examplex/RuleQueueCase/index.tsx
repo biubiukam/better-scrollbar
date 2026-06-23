@@ -17,14 +17,9 @@ import { cn, demoTw, toneRowTw } from "../../components/ExampleSupport/tailwind"
 const RULE_ROW_COUNT = 20_000
 const RULE_ROW_HEIGHT = 42
 const SCENARIO_DEMO_LIST_HEIGHT = 360
-const LOG_LIMIT = 4
 
 interface RuleQueueDemoProps {
 	copy?: ExampleCopy
-}
-
-function appendLog(logs: string[], message: string) {
-	return [message, ...logs].slice(0, LOG_LIMIT)
 }
 
 function Metric({ label, value }: { label: string, value: React.ReactNode }) {
@@ -121,18 +116,12 @@ export function RuleQueueDemo({ copy = DEFAULT_EXAMPLE_COPY }: RuleQueueDemoProp
 	const viewRef = useRef<HTMLDivElement | null>(null)
 	const { itemsRendered, scheduleScrollState, setItemsRendered } = useScrollTelemetry()
 	const [order, setOrder] = useState(createRuleOrder)
-	const [, setLogs] = useState<string[]>(() => [text.logs.initial])
 	const [paused, setPaused] = useState(false)
 	const [priorityId, setPriorityId] = useState<number | null>(null)
 
-	const addLog = useCallback((log: string) => {
-		setLogs((currentLogs) => appendLog(currentLogs, log))
-	}, [])
-
 	const reorderVisibleWindow = useCallback((oldIndex: number, newIndex: number) => {
 		setOrder((currentOrder) => moveItem(currentOrder, oldIndex, newIndex))
-		addLog(text.logs.reordered)
-	}, [addLog, text.logs.reordered])
+	}, [])
 
 	useLayoutEffect(() => {
 		if (!viewRef.current) {
@@ -194,31 +183,22 @@ export function RuleQueueDemo({ copy = DEFAULT_EXAMPLE_COPY }: RuleQueueDemoProp
 					)}
 				/>
 			</div>
-			<footer className={cn(demoTw.toolbar, "rule-demo-toolbar")}>
+		<footer className={cn(demoTw.toolbar, "rule-demo-toolbar")}>
 				<ActionButton
 					icon={<Plus className="h-3.5 w-3.5" />}
-					onClick={() => {
-						setOrder((currentOrder) => [currentOrder.length + 1, ...currentOrder])
-						addLog(text.logs.enqueued)
-					}}
+					onClick={() => setOrder((currentOrder) => [currentOrder.length + 1, ...currentOrder])}
 				>
 					{text.actions.enqueue}
 				</ActionButton>
 				<ActionButton
 					icon={<ChevronsUp className="h-3.5 w-3.5" />}
-					onClick={() => {
-						setPriorityId(order[0] ?? null)
-						addLog(text.logs.promoted)
-					}}
+					onClick={() => setPriorityId(order[0] ?? null)}
 				>
 					{text.actions.promote}
 				</ActionButton>
 				<ActionButton
 					icon={<PauseCircle className="h-3.5 w-3.5" />}
-					onClick={() => {
-						setPaused((currentPaused) => !currentPaused)
-						addLog(text.logs.paused)
-					}}
+					onClick={() => setPaused((currentPaused) => !currentPaused)}
 				>
 					{text.actions.pause}
 				</ActionButton>
@@ -229,7 +209,6 @@ export function RuleQueueDemo({ copy = DEFAULT_EXAMPLE_COPY }: RuleQueueDemoProp
 						setPaused(false)
 						setPriorityId(null)
 						scrollerRef.current?.scrollTo({ x: 0, y: 0 })
-						addLog(text.logs.reset)
 					}}
 				>
 					{text.actions.reset}

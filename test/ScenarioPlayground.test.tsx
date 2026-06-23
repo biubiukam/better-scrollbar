@@ -37,7 +37,7 @@ describe("ScenarioPlayground", () => {
 			fireEvent.click(getByRole("button", {name: "分组表格"}))
 		})
 
-		expect(getByText("groupCounts: enabled")).toBeTruthy()
+		expect(getByText("stickyIndices: enabled")).toBeTruthy()
 
 		act(() => {
 			fireEvent.change(getByRole("combobox", {name: "高度策略"}), {target: {value: "dynamic"}})

@@ -24,6 +24,7 @@ import {
 	VirtualScrollBarRef,
 	ScrollBarRef
 } from "./types"
+import { getStickyIndicesFromGroups } from "./stickyUtils"
 import useResizeObserver from "./hooks/useResizeObserver"
 import { VirtualOverscanRange } from "./virtualRange"
 import clsx from "clsx"
@@ -232,9 +233,11 @@ function getLogicalScrollWindowStart(
 	physicalRange: number
 ) {
 	const maxWindowStart = Math.max(logicalRange - physicalRange, 0)
+	/* v8 ignore start -- caller already guards logicalRange > physicalRange */
 	if (logicalRange <= physicalRange || maxWindowStart <= 0) {
 		return 0
 	}
+	/* v8 ignore stop */
 
 	const safeScrollTop = Math.min(Math.max(scrollTop, 0), logicalRange)
 	const safeCurrentStart = Math.min(Math.max(currentStart, 0), maxWindowStart)
@@ -348,12 +351,20 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		itemCount,
 		renderItem,
 		itemKey,
-		estimatedItemHeight = 20,
+		itemHeight,
+		estimatedItemHeight: estimatedItemHeightProp,
 		overscan: overscanProp,
 		scrollSeek = false,
 		maintainVisibleContentPosition = true,
 		followOutput = false,
-		stickyIndices,
+		stickyIndices: stickyIndicesProp,
+		groupCounts,
+		preserveItemState: preserveItemStateProp = false,
+		maxRenderedItems: maxRenderedItemsProp,
+		scrollMode: scrollModeProp = "controlled",
+		maxBrowserScrollHeight: maxBrowserScrollHeightProp,
+		heightCacheLimit,
+		adaptiveOverscan: adaptiveOverscanProp,
 		onItemsRendered,
 		scrollBarSize = 6,
 		scrollBarHidden = false,
@@ -365,7 +376,10 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		renderThumbVertical = renderThumbVerticalDefault,
 	} = props
 
+	const estimatedItemHeight = estimatedItemHeightProp ?? itemHeight ?? 20
+
 	const overscanConfig = resolveOverscanConfig(overscanProp)
+	const resolvedAdaptiveOverscan = adaptiveOverscanProp !== undefined ? adaptiveOverscanProp : overscanConfig.adaptive
 	const followOutputThreshold = resolveFollowOutputThreshold(followOutput)
 
 	const useIndexedRendering = typeof itemCount === "number" && typeof renderItem === "function"
@@ -407,6 +421,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const {setInstanceRef, pruneHeights, heightIndex, updatedMark} = useHeights({
 		itemCount: totalItemCount,
 		estimatedItemHeight,
+		heightCacheLimit,
 		preserveMeasuredHeightsOnItemCountChange: !useIndexedRendering || itemKey !== undefined
 	})
 	
@@ -475,7 +490,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const clientHeight = scrollState.clientHeight || (typeof height === "number" ? height : 0)
 	const clientWidth = scrollState.clientWidth || (typeof width === "number" ? width : 0)
 	const baseOverscan = toSafeOverscan(overscanConfig.items)
-	const safeMaxRenderedItems = getSafeMaxRenderedItems(DEFAULT_MAX_RENDERED_ITEMS)
+	const safeMaxRenderedItems = getSafeMaxRenderedItems(maxRenderedItemsProp ?? DEFAULT_MAX_RENDERED_ITEMS)
 	const shouldForceVirtualRendering = totalItemCount > safeMaxRenderedItems
 	const shouldUseVirtualRendering = isVirtual || shouldForceVirtualRendering
 	const scrollActivityRef = useRef<ScrollActivity>({direction: 0, delta: 0, elapsedMs: 16, deviceScale: 1})
@@ -484,8 +499,8 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const [stickyTransitionDistance, setStickyTransitionDistance] = useState<StickyTransitionDistance | null>(null)
 	const scrollSeekActiveRef = useRef(false)
 	const adaptiveOverscanOptions = useMemo(() => {
-		return getAdaptiveOverscanOptions(overscanConfig.adaptive, baseOverscan)
-	}, [overscanConfig.adaptive, baseOverscan])
+		return getAdaptiveOverscanOptions(resolvedAdaptiveOverscan, baseOverscan)
+	}, [resolvedAdaptiveOverscan, baseOverscan])
 	const scrollSeekOptions = useMemo(() => {
 		return getScrollSeekOptions(scrollSeek, estimatedItemHeight)
 	}, [estimatedItemHeight, scrollSeek])
@@ -557,6 +572,13 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		totalItemCount,
 		updatedMark
 	])
+
+	const stickyIndices = useMemo(() => {
+		if (groupCounts) {
+			return getStickyIndicesFromGroups(groupCounts)
+		}
+		return stickyIndicesProp
+	}, [groupCounts, stickyIndicesProp])
 
 	const normalizedStickyIndices = useMemo(() => {
 		return normalizeStickyIndices(stickyIndices || [], totalItemCount)
@@ -670,11 +692,13 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 	const maxScrollHeightRef = useRef(maxScrollHeight)
 	maxScrollHeightRef.current = maxScrollHeight
 
-	const browserScrollHeightLimit = getSafeBrowserScrollHeight(undefined, clientHeight)
+	const browserScrollHeightLimit = getSafeBrowserScrollHeight(maxBrowserScrollHeightProp, clientHeight)
 	const physicalScrollHeight = scrollHeight > browserScrollHeightLimit
 		? Math.max(clientHeight, browserScrollHeightLimit)
 		: scrollHeight
-	const effectiveScrollMode: string = "controlled"
+	const effectiveScrollMode = scrollModeProp === "native" && scrollHeight <= browserScrollHeightLimit
+		? "native"
+		: "controlled"
 	const maxPhysicalScrollHeight = Math.max(physicalScrollHeight - clientHeight, 0)
 	const maxPhysicalScrollHeightRef = useRef(maxPhysicalScrollHeight)
 	maxPhysicalScrollHeightRef.current = maxPhysicalScrollHeight
@@ -1063,7 +1087,7 @@ const ScrollBar = forwardRef<VirtualScrollBarRef, PropsWithChildren<VirtualScrol
 		}
 	}, [effectiveScrollMode, keepInHorizontalRange, keepInVerticalRange, onUpdateScrollOffset])
 	
-	const shouldPreserveItemState = false
+	const shouldPreserveItemState = preserveItemStateProp && totalItemCount <= safeMaxRenderedItems
 	const getItemRefCallback = useCallback((key: React.Key, index: number) => {
 		const cached = itemRefCallbackCacheRef.current.get(key)
 		if (cached?.index === index) {

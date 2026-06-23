@@ -122,6 +122,22 @@ export interface VirtualScrollBarProps {
 	followOutput?: boolean | FollowOutputOptions
 	/** Item indexes that should stay sticky, commonly used for group headers. */
 	stickyIndices?: number[]
+	/** Group sizes used to derive sticky group header indices automatically. */
+	groupCounts?: number[]
+	/** Fixed item height. Used as estimatedItemHeight when estimatedItemHeight is not explicitly provided. */
+	itemHeight?: number
+	/** Keeps all items mounted but visually hidden outside the viewport. */
+	preserveItemState?: boolean
+	/** Safety limit for the maximum number of rendered DOM items. */
+	maxRenderedItems?: number
+	/** Scrolling control mode. "controlled" captures wheel events; "native" lets the browser handle scrolling. */
+	scrollMode?: "controlled" | "native"
+	/** Maximum physical scroll height for massive datasets that exceed browser layout limits. */
+	maxBrowserScrollHeight?: number
+	/** Limits how many measured item heights are cached. */
+	heightCacheLimit?: number
+	/** Expands overscan dynamically by scroll direction and distance. */
+	adaptiveOverscan?: boolean | AdaptiveOverscanOptions
 	/** Called when rendered ranges change. */
 	onItemsRendered?: (info: ItemsRenderedInfo) => void
 	/** CSS class prefix. */

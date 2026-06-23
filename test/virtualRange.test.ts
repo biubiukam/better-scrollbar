@@ -227,4 +227,25 @@ describe("virtual range index", () => {
 			scrollHeight: 200,
 		})
 	})
+
+	it("uses the start offset when the viewport size is zero with variable heights", () => {
+		const index = createVirtualHeightIndex({
+			itemCount: 10,
+			estimatedItemHeight: 20,
+			measuredHeights: new Map([[0, 50], [1, 30]]),
+		})
+
+		expect(index.getRange({
+			scrollOffset: 50,
+			viewportSize: 0,
+			overscan: 0,
+		})).toEqual({
+			start: 1,
+			end: 1,
+			visibleStartIndex: 1,
+			visibleEndIndex: 1,
+			offset: 50,
+			scrollHeight: 240,
+		})
+	})
 })
