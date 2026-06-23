@@ -1,6 +1,6 @@
 {
-	"name": "better-scrollbar",
-	"version": "1.1.0",
+	"name": "@biubiukam/better-scrollbar",
+	"version": "1.1.5",
 	"description": "Highly customizable, high-performance React virtual scrollbar component for rendering massive data sets with custom scrollbars.",
 	"packageManager": "pnpm@10.11.0",
 	"keywords": [
