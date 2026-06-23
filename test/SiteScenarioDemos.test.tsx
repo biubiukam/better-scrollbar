@@ -20,12 +20,12 @@ import "../src/styles/index.less"
 
 const EXAMPLEX_ROOT = join(process.cwd(), "site/examplex")
 const AGENT_LABELS = {
-	thinkingTitle: "思考中",
-	collapseThinking: "收起思考过程",
-	expandThinking: "展开思考过程",
-	toolChunkPhase: "工具 chunk 阶段",
-	toolCallingPhase: "工具调用阶段",
-	toolResponsePhase: "工具响应阶段",
+	thinkingTitle: "Reasoning",
+	collapseThinking: "Collapse reasoning",
+	expandThinking: "Expand reasoning",
+	toolChunkPhase: "tool chunks",
+	toolCallingPhase: "tool calling",
+	toolResponsePhase: "tool response",
 }
 const sortableCreate = vi.hoisted(() => vi.fn(() => ({destroy: vi.fn()})))
 type MockSortableOptions = {
@@ -36,7 +36,7 @@ type MockSortableOptions = {
 
 function getAgentMessageCount(container: HTMLElement) {
 	const label = Array.from(container.querySelectorAll(".agent-demo-wrapper span"))
-		.find((span) => span.textContent === "消息数")
+		.find((span) => span.textContent === "Messages")
 	const value = label?.parentElement?.querySelector("strong")?.textContent
 
 	return Number(value)
@@ -62,20 +62,20 @@ describe("site agent scenario demo", () => {
 	})
 
 	it("keeps the four scenario demos while only replacing the agent conversation case", () => {
-		const { getByRole, getByText, queryByRole } = render(<DemosSection copy={ HOME_COPY.zh }/>)
+		const { getByRole, getByText, queryByRole } = render(<DemosSection copy={ HOME_COPY.en }/>)
 
 		expect(DEMOS.map((demo) => demo.id)).toEqual(["agent", "audit", "media", "rules"])
-		expect(getByRole("button", {name: /Agent 对话/})).toBeTruthy()
-		expect(queryByRole("heading", {name: /当前 Demo/})).toBeNull()
-		expect(getByText("Agent 对话 / OpenAI 风格流式工具调用")).toBeTruthy()
-		expect(getByRole("button", {name: /审计日志/})).toBeTruthy()
-		expect(getByRole("button", {name: /富媒体搜索/})).toBeTruthy()
-		expect(getByRole("button", {name: /规则编排/})).toBeTruthy()
-		expect(queryByRole("button", {name: /动态高度/})).toBeNull()
+		expect(getByRole("button", {name: /Agent conversation/})).toBeTruthy()
+		expect(queryByRole("heading", {name: /Current Demo/})).toBeNull()
+		expect(getByText("Agent conversation / OpenAI-style streaming tool calls")).toBeTruthy()
+		expect(getByRole("button", {name: /Audit log/})).toBeTruthy()
+		expect(getByRole("button", {name: /Rich media/})).toBeTruthy()
+		expect(getByRole("button", {name: /Rule queue/})).toBeTruthy()
+		expect(queryByRole("button", {name: /Dynamic height/})).toBeNull()
 	})
 
 	it("lets every scenario demo surface size to its real content height", () => {
-		const { container } = render(<DemosSection copy={ HOME_COPY.zh }/>)
+		const { container } = render(<DemosSection copy={ HOME_COPY.en }/>)
 		const visibleDemoButtons = Array.from(container.querySelectorAll("#demos aside button"))
 			.filter((button) => button.className.includes("items-start"))
 		const wrapperByDemo: Record<(typeof DEMOS)[number]["id"], string> = {
@@ -123,9 +123,9 @@ describe("site agent scenario demo", () => {
 
 		expect(container.querySelector(".scroll-bar-container")).toBeTruthy()
 		expect(container.querySelector(".agent-message-row")).toBeTruthy()
-		expect(getByText("流式间隔")).toBeTruthy()
+		expect(getByText("Chunk interval")).toBeTruthy()
 		expect(getByText("24ms / chunk")).toBeTruthy()
-		expect(getByText(/我需要你帮我排查一个线上 Agent 编排问题/)).toBeTruthy()
+		expect(getByText(/I need help diagnosing a production agent orchestration issue/)).toBeTruthy()
 	})
 
 	it("exposes message rows as measurable DOM nodes for virtual height collection", () => {
@@ -146,7 +146,7 @@ describe("site agent scenario demo", () => {
 
 		try {
 			const { container, getAllByText, getByRole, getByText, queryByText } = render(<AgentConversationDemo/>)
-			const replayButton = getByRole("button", {name: "重新播放"})
+			const replayButton = getByRole("button", {name: "Replay"})
 			const stream = createMockAgentStream(MOCK_AGENT_CONVERSATION)
 			const toolChunkIndex = stream.findIndex((event) => event.type === "tool_delta" && event.phase === "chunk")
 			const toolCallingIndex = stream.findIndex((event) => event.type === "tool_status" && event.phase === "calling")
@@ -166,20 +166,20 @@ describe("site agent scenario demo", () => {
 
 			expect(replayButton.getAttribute("aria-busy")).toBe("true")
 			expect(getAgentMessageCount(container)).toBe(initialMessageCount)
-			expect(queryByText("先快速复述目标")).toBeNull()
+			expect(queryByText(/First restat/)).toBeNull()
 
 			act(() => {
 				vi.advanceTimersByTime(AGENT_STREAM_CHUNK_MS - 1)
 			})
 
-			expect(queryByText("先快速复述目标")).toBeNull()
+			expect(queryByText(/First restat/)).toBeNull()
 
 			act(() => {
 				vi.advanceTimersByTime(1)
 			})
 			elapsedEvents = 1
 
-			expect(getByText("先快速复述目标")).toBeTruthy()
+			expect(getByText(/First restat/)).toBeTruthy()
 			expect(container.querySelector(".agent-thinking-card[aria-expanded='true']")).toBeTruthy()
 			expect(getAgentMessageCount(container)).toBe(initialMessageCount + 1)
 
@@ -195,7 +195,7 @@ describe("site agent scenario demo", () => {
 			advanceToEvent(toolResponseIndex)
 
 			expect(container.querySelector(".agent-tool-call[data-tool-phase='response']")).toBeTruthy()
-			expect(getAllByText(/工具响应已经返回/).length).toBeGreaterThanOrEqual(1)
+			expect(getAllByText(/Tool response returned/).length).toBeGreaterThanOrEqual(1)
 		} finally {
 			vi.useRealTimers()
 		}
@@ -206,7 +206,7 @@ describe("site agent scenario demo", () => {
 
 		try {
 			const { container, getByRole } = render(<AgentConversationDemo/>)
-			const replayButton = getByRole("button", {name: "重新播放"})
+			const replayButton = getByRole("button", {name: "Replay"})
 			const initialMessageCount = getAgentMessageCount(container)
 			const streamDuration = getStreamDuration()
 
@@ -239,7 +239,7 @@ describe("site agent scenario demo", () => {
 
 		try {
 			const { getByRole, queryByText } = render(<AgentConversationDemo/>)
-			const replayButton = getByRole("button", {name: "重新播放"})
+			const replayButton = getByRole("button", {name: "Replay"})
 
 			setIntervalSpy.mockClear()
 			setTimeoutSpy.mockClear()
@@ -255,13 +255,13 @@ describe("site agent scenario demo", () => {
 				vi.advanceTimersByTime(AGENT_STREAM_CHUNK_MS - 1)
 			})
 
-			expect(queryByText("先快速复述目标")).toBeNull()
+			expect(queryByText(/First restat/)).toBeNull()
 
 			act(() => {
 				vi.advanceTimersByTime(1)
 			})
 
-			expect(queryByText("先快速复述目标")).toBeTruthy()
+			expect(queryByText(/First restat/)).toBeTruthy()
 
 			const streamTimeouts = setTimeoutSpy.mock.calls.filter((call) => call[1] === AGENT_STREAM_CHUNK_MS)
 			expect(streamTimeouts.length).toBeGreaterThanOrEqual(2)
@@ -276,7 +276,7 @@ describe("site agent scenario demo", () => {
 		const { container, getByRole } = render(<AgentConversationDemo/>)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "滚动到底部"}))
+			fireEvent.click(getByRole("button", {name: "Scroll bottom"}))
 		})
 
 		const renderedRows = Array.from(container.querySelectorAll(".agent-message-row"))
@@ -291,7 +291,7 @@ describe("site agent scenario demo", () => {
 			const { container, getByRole } = render(<AgentConversationDemo/>)
 
 			act(() => {
-				fireEvent.click(getByRole("button", {name: "重新播放"}))
+				fireEvent.click(getByRole("button", {name: "Replay"}))
 			})
 
 			act(() => {
@@ -311,33 +311,33 @@ describe("site agent scenario demo", () => {
 			})
 
 			expect(thinkingCard?.getAttribute("aria-expanded")).toBe("true")
-			expect(thinkingCard?.querySelector(".agent-thinking-detail")?.textContent).toContain("先快速复述目标")
+			expect(thinkingCard?.querySelector(".agent-thinking-detail")?.textContent).toContain("First restate the target")
 		} finally {
 			vi.useRealTimers()
 		}
 	})
 
 	it("lets the audit log demo switch scroll mode and jump through a 100M indexed range", () => {
-		const { getByRole, getAllByText } = render(<AuditLogDemo copy={ HOME_COPY.zh.examples }/>)
+		const { getByRole, getAllByText } = render(<AuditLogDemo copy={ HOME_COPY.en.examples }/>)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "切换 native"}))
+			fireEvent.click(getByRole("button", {name: "Switch native"}))
 		})
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "跳到高风险"}))
+			fireEvent.click(getByRole("button", {name: "Jump risk"}))
 		})
 
 		expect(getAllByText("scrollMode: native").length).toBeGreaterThanOrEqual(1)
 	})
 
 	it("simulates rich media search changes without losing the scroll performance controls", () => {
-		const { getByRole, getByText } = render(<MediaSearchDemo copy={ HOME_COPY.zh.examples }/>)
+		const { getByRole, getByText } = render(<MediaSearchDemo copy={ HOME_COPY.en.examples }/>)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "切换搜索词"}))
+			fireEvent.click(getByRole("button", {name: "Switch query"}))
 		})
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "切换密度"}))
+			fireEvent.click(getByRole("button", {name: "Toggle density"}))
 		})
 
 		expect(getByText("adaptiveOverscan: on")).toBeTruthy()
@@ -346,7 +346,7 @@ describe("site agent scenario demo", () => {
 
 	it("keeps the rule queue demo draggable inside the mounted virtual window", () => {
 		sortableCreate.mockClear()
-		const { container, getByRole } = render(<RuleQueueDemo copy={ HOME_COPY.zh.examples }/>)
+		const { container, getByRole } = render(<RuleQueueDemo copy={ HOME_COPY.en.examples }/>)
 		const calls = sortableCreate.mock.calls as unknown as Array<[unknown, MockSortableOptions]>
 		const options = calls[0]?.[1]
 
@@ -358,7 +358,7 @@ describe("site agent scenario demo", () => {
 			options?.onEnd?.({oldIndex: 0, newIndex: 1})
 		})
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "提升优先级"}))
+			fireEvent.click(getByRole("button", {name: "Promote priority"}))
 		})
 
 		const rows = Array.from(container.querySelectorAll(".rule-demo-row")).slice(0, 2)
@@ -375,7 +375,7 @@ describe("site agent scenario demo", () => {
 		]
 
 		demos.forEach(({ Component, toolbar }) => {
-			const { container, unmount } = render(<Component copy={ HOME_COPY.zh.examples }/>)
+			const { container, unmount } = render(<Component copy={ HOME_COPY.en.examples }/>)
 			const scrollPane = container.querySelector(".scroll-bar-outer-container")
 
 			expect(scrollPane?.getAttribute("style")).toContain("height: 360px")

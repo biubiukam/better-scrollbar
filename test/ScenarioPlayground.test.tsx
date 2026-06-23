@@ -2,6 +2,7 @@ import { act, fireEvent, render } from "@testing-library/react"
 import React from "react"
 import { describe, expect, it, vi } from "vitest"
 import ScenarioPlayground from "../site/components/ScenarioPlayground/ScenarioPlayground"
+import { EXAMPLE_COPY } from "../site/i18n/examples"
 import "../src/styles/index.less"
 
 const sortableCreate = vi.hoisted(() => vi.fn(() => ({destroy: vi.fn()})))
@@ -19,29 +20,29 @@ vi.mock("sortablejs", () => ({
 
 describe("ScenarioPlayground", () => {
 	it("renders the aggregated 100 million row playground with preset controls and a props snapshot", () => {
-		const { getByRole, getByText } = render(<ScenarioPlayground/>)
+		const { getAllByRole, getByRole, getByText } = render(<ScenarioPlayground copy={EXAMPLE_COPY.en}/>)
 
-		expect(getByText("1 亿行虚拟列表实验台")).toBeTruthy()
-		expect(getByRole("button", {name: "基础大列表"})).toBeTruthy()
-		expect(getByRole("button", {name: "快速滚动"})).toBeTruthy()
-		expect(getByRole("button", {name: "分组表格"})).toBeTruthy()
+		expect(getByText("100M virtual list playground")).toBeTruthy()
+		expect(getByRole("button", {name: "Base list"})).toBeTruthy()
+		expect(getAllByRole("button", {name: "Fast scroll"}).length).toBeGreaterThanOrEqual(1)
+		expect(getByRole("button", {name: "Grouped grid"})).toBeTruthy()
 		expect(getByText("100,000,000")).toBeTruthy()
 		expect(getByText("itemCount: 100,000,000")).toBeTruthy()
 		expect(getByText("overscan: 4")).toBeTruthy()
 	})
 
 	it("lets the user switch presets and form props that change the generated scenario props", () => {
-		const { getByRole, getByText } = render(<ScenarioPlayground/>)
+		const { getByRole, getByText } = render(<ScenarioPlayground copy={EXAMPLE_COPY.en}/>)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "分组表格"}))
+			fireEvent.click(getByRole("button", {name: "Grouped grid"}))
 		})
 
 		expect(getByText("stickyIndices: enabled")).toBeTruthy()
 
 		act(() => {
-			fireEvent.change(getByRole("combobox", {name: "高度策略"}), {target: {value: "dynamic"}})
-			fireEvent.click(getByRole("checkbox", {name: "滚动占位"}))
+			fireEvent.change(getByRole("combobox", {name: "Height mode"}), {target: {value: "dynamic"}})
+			fireEvent.click(getByRole("checkbox", {name: "Scroll placeholder"}))
 		})
 
 		expect(getByText("heightMode: dynamic")).toBeTruthy()
@@ -49,10 +50,10 @@ describe("ScenarioPlayground", () => {
 	})
 
 	it("renders grouped rows with a sticky header without shifting the first data row", () => {
-		const { container, getByRole } = render(<ScenarioPlayground/>)
+		const { container, getByRole } = render(<ScenarioPlayground copy={EXAMPLE_COPY.en}/>)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "分组表格"}))
+			fireEvent.click(getByRole("button", {name: "Grouped grid"}))
 		})
 
 		const stickyRow = container.querySelector(".scroll-bar-sticky-item")
@@ -65,10 +66,10 @@ describe("ScenarioPlayground", () => {
 
 	it("wires the aggregate drag scenario to Sortable and persists visible window reordering once", () => {
 		sortableCreate.mockClear()
-		const { container, getByRole } = render(<ScenarioPlayground/>)
+		const { container, getByRole } = render(<ScenarioPlayground copy={EXAMPLE_COPY.en}/>)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "拖拽排序"}))
+			fireEvent.click(getByRole("button", {name: "Drag sorting"}))
 		})
 
 		const calls = sortableCreate.mock.calls as unknown as Array<[unknown, MockSortableOptions]>
@@ -99,15 +100,15 @@ describe("ScenarioPlayground", () => {
 	})
 
 	it("logs scenario operations and keeps mutations anchored to the 100 million row data set", () => {
-		const { getByRole, getByText } = render(<ScenarioPlayground/>)
+		const { getByRole, getByText } = render(<ScenarioPlayground copy={EXAMPLE_COPY.en}/>)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "跳到中段"}))
-			fireEvent.click(getByRole("button", {name: "上方插入 20 条"}))
+			fireEvent.click(getByRole("button", {name: "Jump to Middle"}))
+			fireEvent.click(getByRole("button", {name: "Insert 20 above"}))
 		})
 
 		expect(getByText("100,000,020")).toBeTruthy()
-		expect(getByText("跳转到 中段")).toBeTruthy()
-		expect(getByText("上方插入 20 条")).toBeTruthy()
+		expect(getByText("Jumped to Middle")).toBeTruthy()
+		expect(getByText("Inserted 20 rows above")).toBeTruthy()
 	})
 })

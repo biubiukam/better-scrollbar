@@ -110,9 +110,7 @@ function MediaRow({
 
 export function MediaSearchDemo({ copy = DEFAULT_EXAMPLE_COPY }: MediaSearchDemoProps) {
 	const text = copy.scenarioDemos.media
-	const queries = useMemo(() => copy === DEFAULT_EXAMPLE_COPY
-		? ["退款凭证", "门店海报", "质检截图"]
-		: ["refund proof", "store poster", "quality screenshot"], [copy])
+	const queries = useMemo(() => ["refund proof", "store poster", "quality screenshot"], [])
 	const scrollerRef = useRef<VirtualScrollBarRef>(null)
 	const { itemsRendered, scheduleScrollState, scrollState, setItemsRendered } = useScrollTelemetry()
 	const [queryIndex, setQueryIndex] = useState(0)

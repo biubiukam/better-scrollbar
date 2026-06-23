@@ -21,7 +21,6 @@ import type { AgentComponentLabels } from "./components"
 import {
 	AGENT_STREAM_CHUNK_MS,
 	MOCK_AGENT_CONVERSATION,
-	MOCK_AGENT_CONVERSATION_EN,
 	createMockAgentStream,
 } from "./mockData"
 import type { AgentConversationFixture, AgentMessage, AgentStreamEvent } from "./mockData"
@@ -84,28 +83,28 @@ const AGENT_UI_COPY: Record<LocaleMode, AgentUiCopy> = {
 		},
 	},
 	zh: {
-		statusIdle: "就绪",
-		statusStreaming: "流式中",
-		streamInterval: "流式间隔",
-		replay: "重新播放",
-		replaying: "播放中",
-		scrollTop: "滚动到顶部",
-		scrollBottom: "滚动到底部",
-		messages: "消息数",
-		visible: "可见区间",
-		rendered: "渲染行",
-		logInitial: "Agent mock 数据已初始化",
-		logReplay: "正在以 24ms/chunk 播放 mock 流",
-		logComplete: "mock 流式对话已完成",
-		logTop: "已滚动到第一条消息",
-		logBottom: "已滚动到最新输出",
+		statusIdle: "Ready",
+		statusStreaming: "Streaming",
+		streamInterval: "Chunk interval",
+		replay: "Replay",
+		replaying: "Replaying",
+		scrollTop: "Scroll top",
+		scrollBottom: "Scroll bottom",
+		messages: "Messages",
+		visible: "Visible",
+		rendered: "Rendered",
+		logInitial: "Agent fixture initialized",
+		logReplay: "Streaming mock conversation at 24ms per chunk",
+		logComplete: "Mock stream completed",
+		logTop: "Scrolled to the first message",
+		logBottom: "Scrolled to latest output",
 		labels: {
-			thinkingTitle: "思考中",
-			collapseThinking: "收起思考过程",
-			expandThinking: "展开思考过程",
-			toolChunkPhase: "工具 chunk 阶段",
-			toolCallingPhase: "工具调用阶段",
-			toolResponsePhase: "工具响应阶段",
+			thinkingTitle: "Reasoning",
+			collapseThinking: "Collapse reasoning",
+			expandThinking: "Expand reasoning",
+			toolChunkPhase: "tool chunks",
+			toolCallingPhase: "tool calling",
+			toolResponsePhase: "tool response",
 		},
 	},
 }
@@ -168,7 +167,7 @@ export function AgentConversationDemo({
 }: AgentConversationDemoProps) {
 	const locale = getLocaleFromCopy(copy, explicitLocale)
 	const ui = AGENT_UI_COPY[locale]
-	const conversation = locale === "en" ? MOCK_AGENT_CONVERSATION_EN : MOCK_AGENT_CONVERSATION
+	const conversation = MOCK_AGENT_CONVERSATION
 	const scrollerRef = useRef<VirtualScrollBarRef>(null)
 	const timerRef = useRef<number>()
 	const bottomFollowFrameRef = useRef<number>()
@@ -252,7 +251,7 @@ export function AgentConversationDemo({
 					id: event.messageId,
 					kind: "thinking",
 					title: ui.labels.thinkingTitle,
-					meta: locale === "en" ? "Streaming" : "流式",
+					meta: "Streaming",
 					timestamp: makeStreamTimestamp(currentMessages),
 					content: "",
 					streaming: true,
@@ -272,7 +271,7 @@ export function AgentConversationDemo({
 			setMessages((currentMessages) => currentMessages.map((message) => message.id === event.messageId
 				? {
 					...message,
-					meta: locale === "en" ? "Done" : "已完成",
+					meta: "Done",
 					streaming: false,
 					expanded: false,
 				}
@@ -316,7 +315,7 @@ export function AgentConversationDemo({
 				() => ({
 					id: event.messageId,
 					kind: "tool",
-					title: locale === "en" ? "Tool call" : "工具调用",
+					title: "Tool call",
 					meta: event.phase,
 					timestamp: makeStreamTimestamp(currentMessages),
 					content: "",
@@ -362,7 +361,7 @@ export function AgentConversationDemo({
 				() => ({
 					id: event.messageId,
 					kind: "tool",
-					title: locale === "en" ? "Tool call" : "工具调用",
+					title: "Tool call",
 					meta: event.phase,
 					timestamp: makeStreamTimestamp(currentMessages),
 					content: "",
