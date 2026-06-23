@@ -1,6 +1,6 @@
 {
 	"name": "@better-scrollbar/react",
-	"version": "2.0.0",
+	"version": "1.0.0",
 	"description": "React adapter for better-scrollbar — highly customizable, high-performance virtual scrollbar component.",
 	"license": "MIT",
 	"author": "biubiukam",
