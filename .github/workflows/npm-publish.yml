@@ -61,16 +61,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Set up Node.js (GitHub Packages registry)
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          registry-url: https://npm.pkg.github.com
-
       - name: Publish to GitHub Packages
-        run: pnpm publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm pkg set name="@${{ github.repository_owner }}/better-scrollbar"
+          echo "@${{ github.repository_owner }}:registry=https://npm.pkg.github.com" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+          pnpm publish --access public --no-git-checks
+          git checkout -- package.json .npmrc 2>/dev/null || true
 
       - name: Commit version update back to repo
         run: |
