@@ -73,8 +73,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout main
+          DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+          git checkout "$DEFAULT_BRANCH"
           git add package.json
           git diff --cached --quiet && exit 0
           git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-          git push origin main
+          git push origin "$DEFAULT_BRANCH"
