@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   publish:
@@ -34,7 +35,7 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      - name: Set up Node.js
+      - name: Set up Node.js (npm registry)
         uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -59,6 +60,17 @@ jobs:
         run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Set up Node.js (GitHub Packages registry)
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+
+      - name: Publish to GitHub Packages
+        run: pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit version update back to repo
         run: |
