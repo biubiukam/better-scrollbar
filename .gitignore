@@ -14,9 +14,9 @@ bower_components
 psd
 thumb
 sketch
-lib
-es
-dist
+/lib
+/es
+/dist
 dist-site
 coverage
 .idea
