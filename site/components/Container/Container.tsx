@@ -1,23 +1,44 @@
 import React, { type PropsWithChildren } from "react"
-import clsx from "clsx"
-import styles from "./Container.module.less"
+import { cn } from "../../lib/utils"
 
 interface ContainerProps {
 	title?: string
 	desc?: string
 	className?: string
+	flow?: boolean
 }
 
-function Container({title, desc, className, children}: PropsWithChildren<ContainerProps>) {
+function Container({title, desc, className, flow = false, children}: PropsWithChildren<ContainerProps>) {
 	return (
-		<div className={ clsx(styles.container, className) }>
+		<div
+			className={ cn(
+				"flex h-[var(--container-height,100%)] w-full min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-[var(--site-shadow-card)] max-md:h-auto max-md:overflow-visible",
+				flow && "h-auto overflow-visible",
+				className
+			) }
+		>
 			{ (title || desc) && (
-				<div className={ styles.containerHeader }>
-					{ title && <h3>{ title }</h3> }
-					{ desc && <p>{ desc }</p> }
+				<div className="w-full min-h-[92px] flex-none border-b border-border p-5">
+					{ title && (
+						<h3 className="overflow-hidden truncate text-base font-semibold leading-6 text-card-foreground">
+							{ title }
+						</h3>
+					) }
+					{ desc && (
+						<p className="mt-1.5 line-clamp-2 overflow-hidden text-[13px] leading-[19px] text-muted-foreground">
+							{ desc }
+						</p>
+					) }
 				</div>
 			) }
-			<div className={ styles.containerWrapper }>{ children }</div>
+			<div
+				className={ cn(
+					"min-h-0 w-full flex-auto p-0 text-muted-foreground max-md:flex-none",
+					flow && "min-h-[auto] flex-none"
+				) }
+			>
+				{ children }
+			</div>
 		</div>
 	)
 }

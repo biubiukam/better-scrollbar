@@ -10,6 +10,11 @@ export interface UseHeightsOptions {
 }
 
 const DEFAULT_HEIGHT_CACHE_LIMIT = 50_000
+const MUTATION_OBSERVER_OPTIONS: MutationObserverInit = {
+	characterData: true,
+	childList: true,
+	subtree: true
+}
 
 function normalizeHeightCacheLimit(heightCacheLimit: number | undefined) {
 	if (heightCacheLimit === undefined) {
@@ -66,6 +71,7 @@ export default ({
 	const keyElementRef = useRef<Map<React.Key, HTMLElement>>(new Map())
 	const elementKeyRef = useRef<Map<HTMLElement, React.Key>>(new Map())
 	const resizeObserverRef = useRef<ResizeObserver | null>(null)
+	const mutationObserverRef = useRef<MutationObserver | null>(null)
 	const heightIndexRef = useRef(createVirtualHeightIndexStore({
 		itemCount: safeItemCount,
 		estimatedItemHeight: safeEstimatedItemHeight,
@@ -125,14 +131,29 @@ export default ({
 		}
 	}
 
+	const reobserveMutations = useCallback(() => {
+		const mutationObserver = mutationObserverRef.current
+		if (!mutationObserver) {
+			return
+		}
+
+		mutationObserver.disconnect()
+		keyElementRef.current.forEach((element) => {
+			if (element.isConnected) {
+				mutationObserver.observe(element, MUTATION_OBSERVER_OPTIONS)
+			}
+		})
+	}, [])
+
 	const unobserveKey = useCallback((key: React.Key) => {
 		const element = keyElementRef.current.get(key)
 		if (element) {
 			resizeObserverRef.current?.unobserve?.(element)
 			keyElementRef.current.delete(key)
 			elementKeyRef.current.delete(element)
+			reobserveMutations()
 		}
-	}, [])
+	}, [reobserveMutations])
 
 	const clearMeasuredIndex = useCallback((key: React.Key) => {
 		const index = keyIndexRef.current.get(key)
@@ -220,6 +241,22 @@ export default ({
 		[cancelRaf, rememberMeasuredHeight]
 	)
 
+	const getMutationObserver = useCallback(() => {
+		if (mutationObserverRef.current || typeof MutationObserver === "undefined") {
+			return mutationObserverRef.current
+		}
+
+		mutationObserverRef.current = new MutationObserver(() => {
+			collectHeight()
+		})
+
+		return mutationObserverRef.current
+	}, [collectHeight])
+
+	const observeMutations = useCallback((element: HTMLElement) => {
+		getMutationObserver()?.observe(element, MUTATION_OBSERVER_OPTIONS)
+	}, [getMutationObserver])
+
 	const getResizeObserver = useCallback(() => {
 		if (resizeObserverRef.current || typeof ResizeObserver === "undefined") {
 			return resizeObserverRef.current
@@ -236,16 +273,16 @@ export default ({
 				const key = elementKeyRef.current.get(entry.target as HTMLElement)
 				if (key === undefined) {
 					return
-					}
+				}
 
-					const element = instanceRef.current.get(key)
-					/* v8 ignore start -- protects stale ResizeObserver entries during DOM detach */
-					if (!element?.isConnected) {
-						return
-					}
-					/* v8 ignore stop */
+				const element = instanceRef.current.get(key)
+				/* v8 ignore start -- protects stale ResizeObserver entries during DOM detach */
+				if (!element?.isConnected) {
+					return
+				}
+				/* v8 ignore stop */
 
-					const offsetHeight = getResizeObserverEntryHeight(entry, element)
+				const offsetHeight = getResizeObserverEntryHeight(entry, element)
 
 				if (heightsRef.current.get(key) !== offsetHeight) {
 					const index = keyIndexRef.current.get(key)
@@ -299,6 +336,7 @@ export default ({
 			elementKeyRef.current.set(instance, key)
 			const resizeObserver = getResizeObserver()
 			resizeObserver?.observe(instance)
+			observeMutations(instance)
 			const cachedHeight = heightsRef.current.get(key)
 			if (cachedHeight !== undefined) {
 				rememberMeasuredHeight(key, index, cachedHeight)
@@ -309,7 +347,7 @@ export default ({
 				collectHeight()
 			}
 		},
-		[collectHeight, getResizeObserver, rememberMeasuredHeight, unobserveKey]
+		[collectHeight, getResizeObserver, observeMutations, rememberMeasuredHeight, unobserveKey]
 	)
 
 	const pruneHeights = useCallback((keys?: React.Key[], itemCount?: number) => {
@@ -342,6 +380,8 @@ export default ({
 			cancelRaf()
 			resizeObserverRef.current?.disconnect()
 			resizeObserverRef.current = null
+			mutationObserverRef.current?.disconnect()
+			mutationObserverRef.current = null
 			keyElementRef.current.clear()
 			elementKeyRef.current.clear()
 		}

@@ -7,8 +7,8 @@ import { LiveConsole } from "./LiveConsole"
 
 export function Hero({ copy }: { copy: HomeCopy }) {
 	return (
-		<section id="overview" className="relative scroll-mt-16 overflow-hidden">
-			<div className="absolute inset-0 bg-[linear-gradient(120deg,hsl(var(--primary)/0.13),transparent_34%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--secondary)/0.32)_65%,hsl(var(--background)))]" />
+		<section id="overview" className="relative scroll-mt-16">
+			<div className="absolute inset-x-0 -top-16 bottom-0 bg-[linear-gradient(120deg,hsl(var(--primary)/0.13),transparent_34%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--secondary)/0.32)_65%,hsl(var(--background)))]" />
 			<div className="absolute inset-0 bg-[linear-gradient(hsl(var(--border)/0.35)_1px,transparent_1px),linear-gradient(90deg,hsl(var(--border)/0.28)_1px,transparent_1px)] bg-[size:54px_54px] opacity-30" />
 			<div className="relative mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.82fr_1fr] lg:px-8 lg:py-20">
 				<div className="flex min-w-0 flex-col gap-8">
@@ -38,7 +38,7 @@ export function Hero({ copy }: { copy: HomeCopy }) {
 				<div className="min-w-0 lg:row-span-2">
 					<LiveConsole copy={copy} />
 				</div>
-				<div className="grid gap-3 sm:grid-cols-3 lg:col-start-1 lg:row-start-2">
+				<div className="grid gap-3 sm:grid-cols-2 lg:col-start-1 lg:row-start-2">
 					{copy.proof.map((item) => (
 						<div key={item.label} className="rounded-lg border border-border/75 bg-card/62 p-4 shadow-site-line backdrop-blur">
 							<div className="text-xs font-medium text-muted-foreground">{item.label}</div>

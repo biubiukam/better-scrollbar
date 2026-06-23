@@ -1,17 +1,18 @@
 import { ScrollBar } from "./ScrollBar"
 
 export { ScrollBar }
+export { getStickyIndicesFromGroups } from "./stickyUtils"
 export type {
 	AdaptiveOverscanOptions,
+	FollowOutputOptions,
 	ItemsRenderedInfo,
+	OverscanConfig,
 	OverscanRange,
 	RenderElement,
 	RenderItem,
-	ScrollMode,
 	ScrollSeekOptions,
 	ScrollSeekPlaceholder,
 	ScrollState,
-	VirtualAccessibilityOptions,
 	VirtualScrollBarProps,
 	VirtualScrollBarRef
 } from "./types"

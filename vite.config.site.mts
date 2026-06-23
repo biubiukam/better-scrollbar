@@ -6,7 +6,7 @@ export default defineConfig((): UserConfig => {
 	return {
 		base: "/better-scrollbar/",
 		server: {
-			port: 3000,
+			port: 5173,
 			cors: true,
 		},
 		resolve: siteResolveConfig,

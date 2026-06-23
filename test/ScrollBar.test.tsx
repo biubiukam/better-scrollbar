@@ -1095,6 +1095,143 @@ describe("VirtualScrollBar", () => {
 		expect(ref.current?.getScrollState().y).toBe(80)
 	})
 
+	it("keeps following output when the viewport height changes at the bottom", () => {
+		vi.useFakeTimers()
+		const resizeCallbacks: ResizeObserverCallback[] = []
+		const OriginalResizeObserver = window.ResizeObserver
+		class ManualResizeObserver {
+			constructor(callback: ResizeObserverCallback) {
+				resizeCallbacks.push(callback)
+			}
+
+			observe() {}
+
+			disconnect() {}
+		}
+		window.ResizeObserver = ManualResizeObserver as unknown as typeof ResizeObserver
+		let viewportHeight = 40
+		const rectSpy = vi
+			.spyOn(HTMLElement.prototype, "getBoundingClientRect")
+			.mockImplementation(function getBoundingClientRect(this: HTMLElement) {
+				const height = this.classList.contains("scroll-bar-inner-container") ? viewportHeight : 20
+				return {
+					x: 0,
+					y: 0,
+					top: 0,
+					left: 0,
+					right: 100,
+					bottom: height,
+					width: 100,
+					height,
+					toJSON: () => ({}),
+				} as DOMRect
+			})
+		const ref = createRef<VirtualScrollBarRef>()
+		const items = Array.from({ length: 5 }, (_, index) => `item-${index}`)
+		const renderList = () => (
+			<VirtualScrollBar height={40} itemHeight={20} followOutput ref={ref}>
+				{items.map((item) => (
+					<div key={item}>{item}</div>
+				))}
+			</VirtualScrollBar>
+		)
+		render(renderList())
+
+		act(() => {
+			resizeCallbacks.forEach((callback) => callback([], {} as ResizeObserver))
+			vi.runAllTimers()
+		})
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 60 })
+			vi.runAllTimers()
+		})
+		viewportHeight = 20
+		act(() => {
+			resizeCallbacks.forEach((callback) => callback([], {} as ResizeObserver))
+			vi.runAllTimers()
+		})
+
+		expect(ref.current?.getScrollState().y).toBe(80)
+
+		rectSpy.mockRestore()
+		window.ResizeObserver = OriginalResizeObserver
+		vi.useRealTimers()
+	})
+
+	it("keeps following output when bottom row text mutations increase item height", () => {
+		vi.useFakeTimers()
+		const resizeCallbacks: ResizeObserverCallback[] = []
+		const mutationCallbacks: MutationCallback[] = []
+		const OriginalResizeObserver = window.ResizeObserver
+		const OriginalMutationObserver = window.MutationObserver
+		class ManualResizeObserver {
+			constructor(callback: ResizeObserverCallback) {
+				resizeCallbacks.push(callback)
+			}
+
+			observe() {}
+
+			unobserve() {}
+
+			disconnect() {}
+		}
+		class ManualMutationObserver {
+			constructor(callback: MutationCallback) {
+				mutationCallbacks.push(callback)
+			}
+
+			observe() {}
+
+			disconnect() {}
+		}
+		window.ResizeObserver = ManualResizeObserver as unknown as typeof ResizeObserver
+		window.MutationObserver = ManualMutationObserver as unknown as typeof MutationObserver
+		const offsetHeightSpy = vi
+			.spyOn(HTMLElement.prototype, "offsetHeight", "get")
+			.mockImplementation(function getOffsetHeight(this: HTMLElement) {
+				return Number(this.getAttribute("data-height")) || 20
+			})
+		const ref = createRef<VirtualScrollBarRef>()
+		let lastHeight = 20
+		let streamed = false
+		const items = Array.from({ length: 4 }, (_, index) => `item-${index}`)
+		const renderList = () => (
+			<VirtualScrollBar height={40} itemHeight={20} followOutput ref={ref}>
+				{items.map((item, index) => (
+					<div key={item} data-height={index === 3 ? lastHeight : 20}>
+						{streamed && index === 3 ? "streamed output with multiple visual lines" : item}
+					</div>
+				))}
+			</VirtualScrollBar>
+		)
+		const { rerender } = render(renderList())
+
+		act(() => {
+			resizeCallbacks.forEach((callback) => callback([], {} as ResizeObserver))
+			vi.runAllTimers()
+		})
+		act(() => {
+			ref.current?.scrollTo({ x: 0, y: 40 })
+			vi.runAllTimers()
+		})
+
+		lastHeight = 60
+		streamed = true
+		rerender(renderList())
+		act(() => {
+			mutationCallbacks.forEach((callback) => callback([], {} as MutationObserver))
+			vi.runAllTimers()
+		})
+
+		expect(ref.current?.getScrollState().scrollHeight).toBe(120)
+		expect(ref.current?.getScrollState().y).toBe(80)
+
+		offsetHeightSpy.mockRestore()
+		window.MutationObserver = OriginalMutationObserver
+		window.ResizeObserver = OriginalResizeObserver
+		vi.useRealTimers()
+	})
+
 	it("keeps indexed anchoring safe when the previous anchor index is removed", () => {
 		const ref = createRef<VirtualScrollBarRef>()
 		const renderList = (count: number) => (
@@ -2458,40 +2595,38 @@ describe("VirtualScrollBar", () => {
 		expect(container.querySelector(".scroll-bar-wrapper")?.textContent).toContain("Group 0")
 	})
 
-	it("adds virtualized grid row count and row index accessibility attributes", () => {
+	it("adds virtualized list position metadata for indexed rendering", () => {
 		const ref = createRef<VirtualScrollBarRef>()
 		const { container } = render(
 			<VirtualScrollBar
 				height={40}
 				itemHeight={20}
 				itemCount={50}
-				renderItem={(index) => (
-					<div key={index} data-testid={`row-${index}`}>
-						Row {index}
-					</div>
-				)}
-				accessibility={{ role: "grid", label: "Virtual rows", rowCount: 50, itemRole: "row" }}
-				ref={ref}
-			/>
-		)
+					renderItem={(index) => (
+						<div key={index} data-testid={`row-${index}`}>
+							Row {index}
+						</div>
+					)}
+					ref={ref}
+				/>
+			)
 
-		const grid = container.querySelector("[role='grid']") as HTMLElement
-		expect(grid).not.toBeNull()
-		expect(grid.getAttribute("aria-label")).toBe("Virtual rows")
-		expect(grid.getAttribute("aria-rowcount")).toBe("50")
-		expect(container.querySelector("[data-testid='row-0']")?.getAttribute("role")).toBe("row")
-		expect(container.querySelector("[data-testid='row-0']")?.getAttribute("aria-rowindex")).toBe("1")
+		const list = container.querySelector("[role='list']") as HTMLElement
+		expect(list).not.toBeNull()
+		expect(container.querySelector("[data-testid='row-0']")?.getAttribute("role")).toBe("listitem")
+		expect(container.querySelector("[data-testid='row-0']")?.getAttribute("aria-posinset")).toBe("1")
+		expect(container.querySelector("[data-testid='row-0']")?.getAttribute("aria-setsize")).toBe("50")
 
 		act(() => {
 			ref.current?.scrollTo({ x: 0, y: 80 })
 		})
 
-		expect(container.querySelector("[data-testid='row-4']")?.getAttribute("aria-rowindex")).toBe("5")
+		expect(container.querySelector("[data-testid='row-4']")?.getAttribute("aria-posinset")).toBe("5")
 	})
 
-	it("adds list accessibility attributes when accessibility is true", () => {
+	it("adds list accessibility attributes by default", () => {
 		const { container } = render(
-			<VirtualScrollBar height={40} itemHeight={20} accessibility>
+			<VirtualScrollBar height={40} itemHeight={20}>
 				{Array.from({ length: 3 }, (_, index) => (
 					<div key={index} data-testid={`list-row-${index}`}>
 						{index}
@@ -2505,28 +2640,6 @@ describe("VirtualScrollBar", () => {
 		expect(container.querySelector("[data-testid='list-row-0']")?.getAttribute("role")).toBe("listitem")
 		expect(container.querySelector("[data-testid='list-row-0']")?.getAttribute("aria-posinset")).toBe("1")
 		expect(container.querySelector("[data-testid='list-row-0']")?.getAttribute("aria-setsize")).toBe("3")
-	})
-
-	it("defaults listbox items to option roles", () => {
-		const { container } = render(
-			<VirtualScrollBar height={40} itemHeight={20} accessibility={{ role: "listbox" }}>
-				<div key="option-0" data-testid="option-row">Option</div>
-			</VirtualScrollBar>
-		)
-
-		expect(container.querySelector("[role='listbox']")).not.toBeNull()
-		expect(container.querySelector("[data-testid='option-row']")?.getAttribute("role")).toBe("option")
-	})
-
-	it("defaults table accessibility items to row roles", () => {
-		const { container } = render(
-			<VirtualScrollBar height={40} itemHeight={20} accessibility={{ role: "table" }}>
-				<div key="row-0" data-testid="table-row">Row</div>
-			</VirtualScrollBar>
-		)
-
-		expect(container.querySelector("[role='table']")).not.toBeNull()
-		expect(container.querySelector("[data-testid='table-row']")?.getAttribute("role")).toBe("row")
 	})
 
 	it("reports current dimensions through the imperative resizeObserver helper", () => {

@@ -60,15 +60,18 @@ export interface OverscanRange {
 	after: number
 }
 
-export interface VirtualAccessibilityOptions {
-	/** Container role. Use grid, table, or treegrid for tabular scenarios. */
-	role?: "list" | "grid" | "table" | "treegrid" | "listbox"
-	/** Accessible name for the container. */
-	label?: string
-	/** Logical row count. Defaults to itemCount or the number of children. */
-	rowCount?: number
-	/** Rendered item role. Grid-like roles default to row; listbox defaults to option. */
-	itemRole?: string
+export interface OverscanConfig {
+	/** Extra item count rendered outside the visible viewport. */
+	items?: number
+	/** Extra pixel range rendered outside the viewport. */
+	pixels?: number | OverscanRange
+	/** Expands before/after overscan dynamically by scroll direction and distance. */
+	adaptive?: boolean | AdaptiveOverscanOptions
+}
+
+export interface FollowOutputOptions {
+	/** Pixel threshold used to decide whether the viewport is at the bottom. Defaults to 1. */
+	threshold?: number
 }
 
 export type ScrollSeekPlaceholder = (index: number) => ReactElement
@@ -83,8 +86,6 @@ export interface ScrollSeekOptions {
 	/** Called when placeholder rendering becomes active or inactive. */
 	onChange?: (active: boolean) => void
 }
-
-export type ScrollMode = "controlled" | "native"
 
 /** Virtual scrollbar props. */
 export interface VirtualScrollBarProps {
@@ -109,40 +110,18 @@ export interface VirtualScrollBarProps {
 	className?: string
 	/** Inline style for the outer container. */
 	style?: CSSProperties
-	/** Default item height. */
-	itemHeight?: number
-	/** Estimated height for unmeasured items. Takes precedence over itemHeight. */
+	/** Estimated height for unmeasured items. Used for virtual range estimation. */
 	estimatedItemHeight?: number
-	/** Maximum measured item heights retained in memory. */
-	heightCacheLimit?: number
-	/** Extra item count rendered outside the visible viewport. */
-	overscan?: number
-	/** Extra pixel range rendered outside the viewport, useful for dynamic-height lists. */
-	overscanPixels?: number | OverscanRange
-	/** Expands before/after overscan dynamically by scroll direction and distance. */
-	adaptiveOverscan?: boolean | AdaptiveOverscanOptions
-	/** Maximum rendered item count in virtual mode. The visible range is never clipped. */
-	maxRenderedItems?: number
+	/** Extra item count or full overscan configuration rendered outside the visible viewport. */
+	overscan?: number | OverscanConfig
 	/** Uses lightweight placeholders during fast scrolling. */
 	scrollSeek?: boolean | ScrollSeekOptions
-	/** Wheel input mode. Native uses the browser scroll pipeline; controlled keeps custom handling. */
-	scrollMode?: ScrollMode
 	/** Keeps the current visible item anchored when data or measurements change. */
 	maintainVisibleContentPosition?: boolean
-	/** Keeps the viewport pinned to the bottom after append when it was already at the bottom. */
-	followOutput?: boolean
-	/** Pixel threshold used to decide whether the viewport is at the bottom. */
-	followOutputThreshold?: number
-	/** Keeps children-mode items mounted to preserve React state while hiding non-visible items. */
-	preserveItemState?: boolean
+	/** Keeps the viewport pinned to the bottom after append when it was already at the bottom. Pass true or options. */
+	followOutput?: boolean | FollowOutputOptions
 	/** Item indexes that should stay sticky, commonly used for group headers. */
 	stickyIndices?: number[]
-	/** Item counts per group; group header indexes are derived from the flattened GroupedVirtuoso-style model. */
-	groupCounts?: number[]
-	/** Accessibility semantics and ARIA row metadata for virtualized lists. */
-	accessibility?: boolean | VirtualAccessibilityOptions
-	/** Maximum physical browser scroll height used to map massive logical ranges. */
-	maxBrowserScrollHeight?: number
 	/** Called when rendered ranges change. */
 	onItemsRendered?: (info: ItemsRenderedInfo) => void
 	/** CSS class prefix. */

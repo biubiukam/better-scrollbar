@@ -1,7 +1,7 @@
 import React from "react"
 import type { HomeCopy } from "../../../i18n/home"
 import Container from "../../../components/Container"
-import ScenarioPlayground from "../../../examplex/ScenarioPlayground"
+import ScenarioPlayground from "../../../components/ScenarioPlayground"
 import { SectionIntro } from "./SectionIntro"
 
 export function PlaygroundSection({ copy }: { copy: HomeCopy }) {
@@ -10,11 +10,10 @@ export function PlaygroundSection({ copy }: { copy: HomeCopy }) {
 			<SectionIntro title={copy.playgroundTitle} desc={copy.playgroundDesc} />
 			<div className="mx-auto mt-8 w-full max-w-7xl px-4 sm:px-6 lg:px-8">
 				<Container
-					title={copy.playgroundContainerTitle}
-					desc={copy.playgroundContainerDesc}
-					className="min-w-0 [--container-height:900px]"
+					className="min-w-0"
+					flow
 				>
-					<ScenarioPlayground />
+					<ScenarioPlayground copy={copy.examples} />
 				</Container>
 			</div>
 		</section>

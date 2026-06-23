@@ -27,9 +27,9 @@ vi.mock("../src", async () => {
 	}
 })
 
-describe("site performance comparison section", () => {
-	it("renders a source-backed comparison against popular virtual list libraries", () => {
-		render(
+describe("site home presentation", () => {
+	it("omits the comparison section from the primary site flow", () => {
+		const { container } = render(
 			<TooltipProvider>
 				<Home
 					theme="dark"
@@ -40,17 +40,48 @@ describe("site performance comparison section", () => {
 			</TooltipProvider>,
 		)
 
-		const compareLink = screen.getByRole("link", { name: "Compare" })
+		expect(screen.queryByRole("link", { name: "Compare" })).toBeNull()
+		expect(container.querySelector("#comparison")).toBeNull()
+		expect(screen.queryByRole("heading", { name: "Source-backed performance comparison" })).toBeNull()
+	})
 
-		expect(compareLink.getAttribute("href")).toBe("#comparison")
-		expect(screen.getByRole("heading", { name: "Source-backed performance comparison" })).toBeTruthy()
-		expect(screen.getByText("Scenario fit score")).toBeTruthy()
-		expect(screen.getByText("not an FPS benchmark")).toBeTruthy()
-		expect(screen.getAllByText("better-scrollbar").length).toBeGreaterThan(0)
-		expect(screen.getAllByText("TanStack Virtual").length).toBeGreaterThan(0)
-		expect(screen.getAllByText("React Virtuoso").length).toBeGreaterThan(0)
-		expect(screen.getAllByText("react-window").length).toBeGreaterThan(0)
-		expect(screen.getAllByText("react-virtualized").length).toBeGreaterThan(0)
-		expect(screen.getAllByText("Bundlephobia API").length).toBeGreaterThan(0)
+	it("lets the playground container expand with content instead of adding inner scrollbars", () => {
+		const { container } = render(
+			<TooltipProvider>
+				<Home
+					theme="dark"
+					locale="en"
+					onThemeChange={vi.fn()}
+					onLocaleChange={vi.fn()}
+				/>
+			</TooltipProvider>,
+		)
+
+		const playground = container.querySelector("#playground") as HTMLElement
+		const scenarioRoot = playground.querySelector(".scenario-playground") as HTMLElement
+		const scrollablePanels = playground.querySelectorAll(".scenario-playground-controls, .scenario-playground-snapshot, .scenario-playground-log")
+
+		expect(screen.queryByRole("heading", { name: "Interactive prop laboratory" })).toBeNull()
+		expect(screen.getByRole("heading", { name: "100M virtual list playground" })).toBeTruthy()
+		expect(scenarioRoot.className).not.toContain("h-full")
+		expect(scenarioRoot.className).not.toContain("overflow-hidden")
+		scrollablePanels.forEach((panel) => {
+			expect(panel.className).not.toContain("overflow-auto")
+		})
+	})
+
+	it("renders the full site without Chinese copy when the English locale is active", () => {
+		const { container } = render(
+			<TooltipProvider>
+				<Home
+					theme="dark"
+					locale="en"
+					onThemeChange={vi.fn()}
+					onLocaleChange={vi.fn()}
+				/>
+			</TooltipProvider>,
+		)
+
+		expect(container.textContent).not.toMatch(/[\u4E00-\u9FFF]/)
 	})
 })

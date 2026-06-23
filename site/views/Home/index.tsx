@@ -2,7 +2,6 @@ import React from "react"
 import { getHomeCopy } from "../../i18n/home"
 import { ApiSection } from "./components/ApiSection"
 import { CasesSection } from "./components/CasesSection"
-import { ComparisonSection } from "./components/ComparisonSection"
 import { DemosSection } from "./components/DemosSection"
 import { Footer } from "./components/Footer"
 import { Header } from "./components/Header"
@@ -24,7 +23,6 @@ function Home({ theme, locale, onThemeChange, onLocaleChange }: HomeViewProps) {
 			/>
 			<Hero copy={copy} />
 			<CasesSection copy={copy} />
-			<ComparisonSection copy={copy} />
 			<PlaygroundSection copy={copy} />
 			<DemosSection copy={copy} />
 			<ApiSection copy={copy} locale={locale} />

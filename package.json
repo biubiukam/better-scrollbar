@@ -1,15 +1,21 @@
 {
 	"name": "better-scrollbar",
-	"version": "1.0.2",
-	"description": "Highly customizable, high-performance virtual list for big data rendering.",
+	"version": "1.1.0",
+	"description": "Highly customizable, high-performance React virtual scrollbar component for rendering massive data sets with custom scrollbars.",
 	"packageManager": "pnpm@10.11.0",
 	"keywords": [
 		"react",
-		"scroll",
-		"scrolling",
+		"virtual-scroll",
+		"virtual-list",
+		"virtualization",
 		"scrollbar",
-		"scroll-view",
-		"customizable"
+		"custom-scrollbar",
+		"infinite-scroll",
+		"large-list",
+		"dynamic-height",
+		"scroll-anchoring",
+		"high-performance",
+		"react-component"
 	],
 	"homepage": "https://biubiukam.github.io/better-scrollbar/",
 	"repository": {

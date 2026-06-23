@@ -1,12 +1,25 @@
-# VirtualScrollBar 使用文档
+# API Reference
 
-`better-scrollbar` 提供一个 React 虚拟列表与自定义滚动条组件。组件支持 children 渲染和按索引惰性渲染两种模式；当数据规模达到千万级或 5000 万行时，应优先使用 `itemCount + renderItem`，避免提前创建完整数组。
+`better-scrollbar` provides a React virtual list with customizable scrollbars. It
+supports both regular `children` rendering and indexed lazy rendering with
+`itemCount + renderItem`. Use indexed rendering for very large data sets, such as
+10 million, 50 million, or 100 million rows, so the application does not allocate
+a full children array up front.
 
-## 基础用法
+## Table of Contents
+
+- [Basic Usage](#basic-usage)
+- [100 Million Rows](#100-million-rows)
+- [Props](#props-api)
+- [Supporting Types](#supporting-types)
+- [Ref API](#ref-api)
+- [Performance Notes](#performance-notes)
+
+## Basic Usage
 
 ```tsx
 import VirtualScrollBar from "better-scrollbar"
-import "better-scrollbar/dist/BetterScrollbar.min.css"
+import "better-scrollbar/dist/ScrollBar.min.css"
 
 export default function Demo() {
 	return (
@@ -18,12 +31,12 @@ export default function Demo() {
 }
 ```
 
-## 5000 万行用法
+## 100 Million Rows
 
 ```tsx
 import VirtualScrollBar from "better-scrollbar"
 
-const ROW_COUNT = 50_000_000
+const ROW_COUNT = 100_000_000
 
 export default function HugeList() {
 	return (
@@ -33,8 +46,12 @@ export default function HugeList() {
 			itemCount={ROW_COUNT}
 			estimatedItemHeight={32}
 			overscan={2}
+			overscanPixels={320}
+			maxRenderedItems={500}
+			heightCacheLimit={50_000}
+			scrollMode="native"
 			adaptiveOverscan
-			scrollSeek
+			scrollSeek={{ velocityThreshold: 2, exitVelocityThreshold: 0.8 }}
 			renderItem={(index) => (
 				<div key={index} style={{ height: 32 }}>
 					Row {index.toLocaleString()}
@@ -49,43 +66,46 @@ export default function HugeList() {
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `children` | `ReactNode \| (() => ReactElement)` | `undefined` | children 模式的数据项。适合中小规模或需要直接声明 JSX 的列表。 |
-| `itemCount` | `number` | `undefined` | 按索引渲染模式的数据总数。5000 万行等超大数据量应使用该模式。 |
-| `renderItem` | `(index: number) => ReactElement` | `undefined` | 按索引惰性渲染单行。与 `itemCount` 同时提供时优先使用 indexed 模式。 |
-| `itemKey` | `(index: number) => Key` | `index` | indexed 模式下生成稳定 key。children 模式默认使用 child key。 |
-| `isVirtual` | `boolean` | `true` | 是否开启虚拟渲染。关闭后会渲染全部条目。 |
-| `width` | `number` | `undefined` | 滚动容器宽度，单位 px。 |
-| `height` | `number` | `undefined` | 滚动容器高度，单位 px。 |
-| `className` | `string` | `undefined` | 外层容器 className。 |
-| `style` | `CSSProperties` | `undefined` | 外层容器内联样式。 |
-| `itemHeight` | `number` | `20` | 单行默认高度。 |
-| `estimatedItemHeight` | `number` | `itemHeight` | 未测量行的预估高度。动态高度和 indexed 模式都依赖该值计算总高度。 |
-| `overscan` | `number` | `1` | 可视区域外额外渲染的行数。 |
-| `adaptiveOverscan` | `boolean \| AdaptiveOverscanOptions` | `false` | 根据滚动方向、距离、时间和设备像素比动态扩大 overscan。 |
-| `scrollSeek` | `boolean \| ScrollSeekOptions` | `false` | 高速滚动时用轻量 placeholder 替代真实行，降低重行渲染成本。 |
-| `maintainVisibleContentPosition` | `boolean` | `true` | 动态高度变化、前置插入或测量更新时保持当前可见行锚定。 |
-| `followOutput` | `boolean` | `false` | 已接近底部时，追加数据后继续贴住底部，适合日志/聊天场景。 |
-| `followOutputThreshold` | `number` | `1` | 判断“接近底部”的像素阈值。 |
-| `preserveItemState` | `boolean` | `false` | children 模式下保留非可视项的 React 状态；会隐藏非可视项而不是卸载。indexed 模式建议把状态外置。 |
-| `stickyIndices` | `number[]` | `undefined` | 指定吸顶行索引。 |
-| `groupCounts` | `number[]` | `undefined` | 按分组数据条数推导分组头吸顶索引；每组格式为 1 个 header + N 个 item。 |
-| `accessibility` | `boolean \| VirtualAccessibilityOptions` | `false` | 开启列表/网格 ARIA 语义。 |
-| `maxBrowserScrollHeight` | `number` | `10000000` | 浏览器物理滚动高度上限。逻辑高度超过该值时会做物理/逻辑坐标映射。 |
-| `onItemsRendered` | `(info: ItemsRenderedInfo) => void` | `undefined` | 渲染区间变化回调，返回 overscan 区间和可视区间。 |
-| `onScroll` | `(scrollState: ScrollState) => void` | `undefined` | 滚动状态变化回调。高频 wheel 会按帧合并后触发。 |
-| `onScrollStart` | `() => void` | `undefined` | 滚动开始回调。 |
-| `onScrollEnd` | `() => void` | `undefined` | 滚动结束回调。 |
-| `prefixCls` | `string` | `"scroll-bar"` | 组件 className 前缀。 |
-| `scrollBarSize` | `number` | `6` | 自定义滚动条厚度。 |
-| `scrollBarHidden` | `boolean` | `false` | 是否隐藏自定义滚动条。 |
-| `scrollBarAutoHideTimeout` | `number` | `1000` | 自定义滚动条自动隐藏延时，单位 ms。 |
-| `renderView` | `RenderElement<HTMLProps<HTMLDivElement>>` | 内置 `div` | 自定义列表内容包裹元素。 |
-| `renderTrackHorizontal` | `RenderElement<HTMLProps<HTMLDivElement>>` | 内置水平轨道 | 自定义水平滚动轨。 |
-| `renderTrackVertical` | `RenderElement<HTMLProps<HTMLDivElement>>` | 内置垂直轨道 | 自定义垂直滚动轨。 |
-| `renderThumbHorizontal` | `RenderElement<HTMLProps<HTMLDivElement>>` | 内置水平滑块 | 自定义水平滚动滑块。 |
-| `renderThumbVertical` | `RenderElement<HTMLProps<HTMLDivElement>>` | 内置垂直滑块 | 自定义垂直滚动滑块。 |
+| `children` | `ReactNode \| (() => ReactElement)` | `undefined` | Items for children mode. Best for small and medium lists, or when callers need to declare JSX directly. |
+| `itemCount` | `number` | `undefined` | Total item count for indexed rendering. Use this for massive lists. |
+| `renderItem` | `(index: number) => ReactElement` | `undefined` | Lazy row renderer. When both `itemCount` and `renderItem` are provided, indexed rendering takes priority. |
+| `itemKey` | `(index: number) => Key` | `index` | Stable key generator for indexed items. Children mode uses child keys by default. |
+| `isVirtual` | `boolean` | `true` | Enables virtual rendering. If disabled, all items are rendered unless the item count exceeds `maxRenderedItems`; in that case the component falls back to virtual rendering to avoid mounting a large DOM tree. |
+| `width` | `number` | `undefined` | Scroll viewport width in px. |
+| `height` | `number` | `undefined` | Scroll viewport height in px. |
+| `className` | `string` | `undefined` | Class name for the outer container. |
+| `style` | `CSSProperties` | `undefined` | Inline style for the outer container. |
+| `itemHeight` | `number` | `20` | Default row height. |
+| `estimatedItemHeight` | `number` | `itemHeight` | Estimated height for unmeasured rows. Dynamic-height and indexed modes use this value to estimate total height. |
+| `heightCacheLimit` | `number` | `50000` | Maximum measured row heights retained in memory. Pass `Infinity` to disable eviction. The limit is soft because currently mounted rows are retained first. |
+| `overscan` | `number` | `1` | Extra row count rendered outside the visible range. |
+| `overscanPixels` | `number \| OverscanRange` | `undefined` | Extra pixel range rendered outside the viewport. Useful for dynamic-height lists. |
+| `adaptiveOverscan` | `boolean \| AdaptiveOverscanOptions` | `false` | Expands overscan by scroll direction, distance, elapsed time, and device pixel ratio. |
+| `maxRenderedItems` | `number` | `500` | Rendered item cap. It never clips the real visible range and also guards `isVirtual={false}` and `preserveItemState`. Pass `Infinity` only when rendering every item is intentional. |
+| `scrollSeek` | `boolean \| ScrollSeekOptions` | `false` | Uses lightweight placeholders while scrolling fast. |
+| `scrollMode` | `"controlled" \| "native"` | `"controlled"` | Wheel input strategy. `controlled` keeps custom wheel handling; `native` uses the browser scroll pipeline when the physical browser range can represent the logical range. |
+| `maintainVisibleContentPosition` | `boolean` | `true` | Keeps the current visible item anchored when data or measurements change. |
+| `followOutput` | `boolean` | `false` | Keeps the viewport pinned to the bottom after append when it was already near the bottom. Useful for logs and chat views. |
+| `followOutputThreshold` | `number` | `1` | Pixel threshold used to decide whether the viewport is near the bottom. |
+| `preserveItemState` | `boolean` | `false` | In children mode, keeps non-visible items mounted and hides them instead of unmounting them. If the item count exceeds `maxRenderedItems`, the component falls back to virtual unmounting. Indexed mode should keep row state outside the row component. |
+| `stickyIndices` | `number[]` | `undefined` | Item indexes that should stay sticky, commonly used for group headers. |
+| `groupCounts` | `number[]` | `undefined` | Per-group item counts used to derive sticky group headers. Each group is modeled as one header plus `N` items. |
+| `maxBrowserScrollHeight` | `number` | `10000000` | Maximum physical browser scroll height. When logical height exceeds this value, the component maps between physical and logical coordinates. |
+| `onItemsRendered` | `(info: ItemsRenderedInfo) => void` | `undefined` | Called when rendered or visible item ranges change. |
+| `onScroll` | `(scrollState: ScrollState) => void` | `undefined` | Called when scroll state changes. High-frequency wheel input is batched to animation frames. |
+| `onScrollStart` | `() => void` | `undefined` | Called when scrolling starts. |
+| `onScrollEnd` | `() => void` | `undefined` | Called when scrolling ends. |
+| `prefixCls` | `string` | `"scroll-bar"` | CSS class prefix. |
+| `scrollBarSize` | `number` | `6` | Custom scrollbar thickness. |
+| `scrollBarHidden` | `boolean` | `false` | Hides custom scrollbars. |
+| `scrollBarAutoHideTimeout` | `number` | `1000` | Delay, in ms, before custom scrollbars auto-hide. |
+| `renderView` | `RenderElement<HTMLProps<HTMLDivElement>>` | built-in `div` | Custom render function for the scroll view wrapper. |
+| `renderTrackHorizontal` | `RenderElement<HTMLProps<HTMLDivElement>>` | built-in horizontal track | Custom horizontal track renderer. |
+| `renderTrackVertical` | `RenderElement<HTMLProps<HTMLDivElement>>` | built-in vertical track | Custom vertical track renderer. |
+| `renderThumbHorizontal` | `RenderElement<HTMLProps<HTMLDivElement>>` | built-in horizontal thumb | Custom horizontal thumb renderer. |
+| `renderThumbVertical` | `RenderElement<HTMLProps<HTMLDivElement>>` | built-in vertical thumb | Custom vertical thumb renderer. |
 
-## 子类型
+## Supporting Types
 
 ```ts
 interface AdaptiveOverscanOptions {
@@ -98,38 +118,38 @@ interface AdaptiveOverscanOptions {
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `min` | `number` | `overscan` | 动态 overscan 下限。 |
-| `max` | `number` | `Math.max(overscan + 4, min)` | 动态 overscan 上限。 |
-| `velocityFactor` | `number` | `0.02` | 按滚动距离放大的系数。 |
-| `timeFactor` | `number` | `0.15` | 按滚动速度放大的系数，速度单位为 px/ms。 |
+| `min` | `number` | `overscan` | Lower bound for dynamic overscan. |
+| `max` | `number` | `Math.max(overscan + 4, min)` | Upper bound for dynamic overscan. |
+| `velocityFactor` | `number` | `0.02` | Multiplier applied to scroll distance. |
+| `timeFactor` | `number` | `0.15` | Multiplier applied to scroll velocity in px/ms. |
+
+```ts
+interface OverscanRange {
+	before: number
+	after: number
+}
+```
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `before` | `number` | none | Extra items or pixels rendered before the viewport. For `overscanPixels`, the unit is px. |
+| `after` | `number` | none | Extra items or pixels rendered after the viewport. For `overscanPixels`, the unit is px. |
 
 ```ts
 interface ScrollSeekOptions {
 	velocityThreshold?: number
+	exitVelocityThreshold?: number
 	placeholder?: (index: number) => ReactElement
+	onChange?: (active: boolean) => void
 }
 ```
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `velocityThreshold` | `number` | `2` | 进入 scroll-seek 的速度阈值，单位 px/ms。 |
-| `placeholder` | `(index: number) => ReactElement` | `<div aria-hidden style={{ height: estimatedItemHeight }} />` | 高速滚动时渲染的轻量占位项。 |
-
-```ts
-interface VirtualAccessibilityOptions {
-	role?: "list" | "grid" | "table" | "treegrid" | "listbox"
-	label?: string
-	rowCount?: number
-	itemRole?: string
-}
-```
-
-| Field | Type | Default | Description |
-| --- | --- | --- | --- |
-| `role` | `"list" \| "grid" \| "table" \| "treegrid" \| "listbox"` | `"list"` | 容器语义角色。 |
-| `label` | `string` | `undefined` | 容器可访问名称，对应 `aria-label`。 |
-| `rowCount` | `number` | `itemCount` 或 children 数量 | 逻辑总行数。grid/table/treegrid 下会输出 `aria-rowcount`。 |
-| `itemRole` | `string` | grid/table/treegrid 为 `"row"`；listbox 为 `"option"`；其他为 `"listitem"` | 单项语义角色。 |
+| `velocityThreshold` | `number` | `2` | Velocity threshold, in px/ms, used to enter scroll-seek mode. |
+| `exitVelocityThreshold` | `number` | `velocityThreshold / 2` | Lower threshold used to leave scroll-seek mode. The default hysteresis avoids placeholder/real row flicker. |
+| `placeholder` | `(index: number) => ReactElement` | `<div aria-hidden style={{ height: estimatedItemHeight }} />` | Lightweight placeholder rendered during fast scrolling. It is not written into the real height cache, so its height should be close to `estimatedItemHeight`. |
+| `onChange` | `(active: boolean) => void` | `undefined` | Called when scroll-seek mode becomes active or inactive. |
 
 ```ts
 interface ItemsRenderedInfo {
@@ -168,14 +188,45 @@ interface VirtualScrollBarRef {
 
 | Method | Description |
 | --- | --- |
-| `scrollTo({ x, y })` | 命令式滚动到指定逻辑坐标。5000 万行场景下传入的 `y` 仍然是逻辑滚动坐标。 |
-| `getScrollState()` | 获取当前滚动状态。wheel 高频输入会先写入内部 ref，因此该方法能立即读到最新坐标。 |
-| `resizeObserver(callback)` | 立即回调当前滚动内容尺寸和视区尺寸。 |
+| `scrollTo({ x, y })` | Imperatively scrolls to the requested logical coordinates. In massive-list scenarios, `y` is still a logical scroll coordinate. |
+| `getScrollState()` | Returns the latest scroll state. Wheel input writes to the internal ref before React state is batched, so this method can read the newest coordinates immediately. |
+| `resizeObserver(callback)` | Immediately calls `callback` with the current content and viewport dimensions. |
 
-## 性能说明
+## Performance Notes
 
-- 动态高度使用块级 Fenwick 索引维护测量高度 delta，单行 resize 不需要重排完整高度表。
-- 行高测量使用单个共享 `ResizeObserver`，不会为每个挂载行创建一个 observer。
-- wheel 和拖拽等高频滚动输入先写入内部 ref，再按 animation frame 合并 React state 更新。
-- `adaptiveOverscan` 会结合滚动距离、相邻事件时间和 `devicePixelRatio` 计算方向性预渲染范围。
-- `scrollSeek` 适合单行渲染成本高的场景；高速滚动期间用 placeholder 保持列表结构，滚动停止后恢复真实行。
+- **Fenwick tree index** — Dynamic heights are tracked with a block-based Fenwick
+  index over measured height deltas, so single-row resize updates do not rebuild
+  the full height table.
+- **Fixed-height fast path** — Fixed-height lists skip the dynamic height index
+  entirely. Offsets are calculated as `index * estimatedItemHeight`, and visible
+  indexes are calculated from `Math.floor(scrollOffset / estimatedItemHeight)`.
+- **Shared ResizeObserver** — Row measurement uses one shared `ResizeObserver`.
+  Observer callbacks prefer `ResizeObserverEntry.contentRect.height` and only
+  fall back to `offsetHeight` when entry dimensions are missing.
+- **Batched updates** — High-frequency wheel and drag input writes to internal
+  refs first, then batches React state updates through animation frames.
+- **Massive ranges** — When logical height is larger than the browser-safe
+  physical height, the DOM `scrollTop` is kept inside a local logical window.
+  `scrollState.y` still stores the full logical offset, but small native scroll
+  deltas are no longer multiplied by the full logical-to-physical range ratio.
+- **Native scroll pipeline** — `scrollMode="native"` lets wheel and trackpad
+  input use the browser scroll pipeline when possible. When very large lists
+  require compressed physical browser height, controlled wheel handling is used
+  to preserve logical offset precision.
+- **Adaptive overscan** — `adaptiveOverscan` calculates direction-aware
+  pre-rendering from scroll distance, event timing, and `devicePixelRatio`.
+- **Pixel overscan** — `overscanPixels` controls pre-rendering by pixels instead
+  of row count, which is useful for dynamic-height lists.
+- **DOM cap** — `maxRenderedItems` protects overscan, adaptive overscan,
+  `isVirtual={false}`, and `preserveItemState` from mounting too many DOM nodes.
+  The real visible range is always preserved.
+- **Height cache limit** — `heightCacheLimit` provides an LRU soft cap for
+  measured row heights, avoiding unbounded cache growth during long browsing
+  sessions through very large lists.
+- **Scroll seek** — Designed for expensive row renderers. During fast scrolling,
+  placeholders keep list structure stable; when scrolling slows down, real rows
+  are restored. Placeholder rows do not participate in height measurement.
+- **Accessibility** — Rendered content is exposed as a virtualized list by
+  default. The wrapper uses `role="list"`, and rendered items use
+  `role="listitem"` with `aria-posinset` and `aria-setsize`. Grid and table
+  semantics should be handled by dedicated components.

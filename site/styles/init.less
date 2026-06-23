@@ -133,7 +133,11 @@ button {
 :root .random-million-wrapper,
 :root .shadow-million-wrapper,
 :root .drag-million-wrapper,
-:root .custom-million-wrapper {
+:root .custom-million-wrapper,
+:root .agent-demo-wrapper,
+:root .audit-demo-wrapper,
+:root .media-demo-wrapper,
+:root .rule-demo-wrapper {
 	min-width: 0;
 	overflow: hidden;
 	background: var(--site-card);
@@ -144,7 +148,11 @@ button {
 :root .random-million-head,
 :root .shadow-million-head,
 :root .drag-million-head,
-:root .custom-million-head {
+:root .custom-million-head,
+:root .agent-demo-head,
+:root .audit-demo-head,
+:root .media-demo-head,
+:root .rule-demo-head {
 	min-width: 0;
 	min-height: 62px;
 	border-bottom-color: var(--site-border);
@@ -155,7 +163,11 @@ button {
 :root .random-million-head > div:first-child,
 :root .shadow-million-head > div:first-child,
 :root .drag-million-head > div:first-child,
-:root .custom-million-head > div:first-child {
+:root .custom-million-head > div:first-child,
+:root .agent-demo-head > div:first-child,
+:root .audit-demo-head > div:first-child,
+:root .media-demo-head > div:first-child,
+:root .rule-demo-head > div:first-child {
 	min-width: 0;
 }
 
@@ -235,7 +247,11 @@ button {
 :root .random-million-list,
 :root .shadow-million-list,
 :root .drag-million-list,
-:root .custom-million-list {
+:root .custom-million-list,
+:root .agent-demo-list,
+:root .audit-demo-list,
+:root .media-demo-list,
+:root .rule-demo-list {
 	min-height: 0;
 	border-bottom-color: var(--site-border);
 	background: var(--site-card);
@@ -245,7 +261,11 @@ button {
 :root .random-million-item,
 :root .shadow-million-item,
 :root .drag-million-item,
-:root .custom-million-item {
+:root .custom-million-item,
+:root .agent-demo-row,
+:root .audit-demo-row,
+:root .media-demo-row,
+:root .rule-demo-row {
 	min-width: 0;
 	border-top-color: var(--site-border);
 	background: var(--site-card);
@@ -254,20 +274,28 @@ button {
 }
 
 :root .million-row--alert,
-:root .random-million-item--alert {
+:root .random-million-item--alert,
+:root .audit-demo-row--alert {
 	background: var(--site-row-alert-bg);
 	border-left-color: var(--site-danger);
 }
 
 :root .million-row--focus,
 :root .random-million-item--focus,
-:root .drag-million-chosen {
+:root .drag-million-chosen,
+:root .agent-demo-row--focus,
+:root .audit-demo-row--focus,
+:root .media-demo-row--focus,
+:root .rule-demo-row--focus {
 	background: var(--site-row-focus-bg);
 	border-left-color: var(--site-accent);
 }
 
 :root .million-row--warm,
-:root .random-million-item--warm {
+:root .random-million-item--warm,
+:root .agent-demo-row--warm,
+:root .media-demo-row--warm,
+:root .rule-demo-row--warm {
 	background: var(--site-row-warm-bg);
 	border-left-color: var(--site-warning);
 }
@@ -300,7 +328,11 @@ button {
 :root .random-million-toolbar,
 :root .shadow-million-result,
 :root .drag-million-result,
-:root .custom-million-result {
+:root .custom-million-result,
+:root .agent-demo-result,
+:root .audit-demo-result,
+:root .media-demo-result,
+:root .rule-demo-result {
 	min-height: 58px;
 	border-top-color: var(--site-border);
 	background: var(--site-card);
@@ -356,7 +388,11 @@ button {
 :root .million-toolbar button,
 :root .random-million-actions button,
 :root .random-million-jumps button,
-:root .shadow-million-jumps button {
+:root .shadow-million-jumps button,
+:root .agent-demo-toolbar button,
+:root .audit-demo-toolbar button,
+:root .media-demo-toolbar button,
+:root .rule-demo-toolbar button {
 	min-width: 0;
 	border-color: var(--site-border-strong);
 	background: var(--site-card);
@@ -369,7 +405,11 @@ button {
 :root .million-toolbar button:hover,
 :root .random-million-actions button:hover,
 :root .random-million-jumps button:hover,
-:root .shadow-million-jumps button:hover {
+:root .shadow-million-jumps button:hover,
+:root .agent-demo-toolbar button:hover,
+:root .audit-demo-toolbar button:hover,
+:root .media-demo-toolbar button:hover,
+:root .rule-demo-toolbar button:hover {
 	border-color: var(--site-accent);
 	background: var(--site-muted);
 }
@@ -400,7 +440,11 @@ button {
 	:root .random-million-wrapper,
 	:root .shadow-million-wrapper,
 	:root .drag-million-wrapper,
-	:root .custom-million-wrapper {
+	:root .custom-million-wrapper,
+	:root .agent-demo-wrapper,
+	:root .audit-demo-wrapper,
+	:root .media-demo-wrapper,
+	:root .rule-demo-wrapper {
 		height: auto;
 		overflow: visible;
 	}
@@ -409,7 +453,11 @@ button {
 	:root .random-million-list,
 	:root .shadow-million-list,
 	:root .drag-million-list,
-	:root .custom-million-list {
+	:root .custom-million-list,
+	:root .agent-demo-list,
+	:root .audit-demo-list,
+	:root .media-demo-list,
+	:root .rule-demo-list {
 		flex: none;
 	}
 
@@ -422,8 +470,12 @@ button {
 	}
 
 	:root .drag-million-list,
-	:root .custom-million-list {
-		height: 390px;
+	:root .custom-million-list,
+	:root .agent-demo-list,
+	:root .audit-demo-list,
+	:root .media-demo-list,
+	:root .rule-demo-list {
+		height: 360px;
 	}
 }
 

@@ -7,10 +7,9 @@ import { DemoButton } from "./DemoButton"
 import { SectionIntro } from "./SectionIntro"
 
 export function DemosSection({ copy }: { copy: HomeCopy }) {
-	const [activeDemoId, setActiveDemoId] = useState<DemoId>("dynamic")
+	const [activeDemoId, setActiveDemoId] = useState<DemoId>(DEMOS[0].id)
 	const activeDemo = useMemo(() => DEMOS.find((demo) => demo.id === activeDemoId) ?? DEMOS[0], [activeDemoId])
 	const ActiveDemo = activeDemo.component
-	const activeCopy = copy.demos[activeDemo.id]
 
 	return (
 		<section id="demos" className="scroll-mt-16 border-t border-border/70 bg-background py-16 sm:py-20">
@@ -48,11 +47,10 @@ export function DemosSection({ copy }: { copy: HomeCopy }) {
 					</div>
 				</aside>
 				<Container
-					title={`${copy.demoContainerTitle} · ${activeCopy.title}`}
-					desc={activeCopy.desc}
-					className="min-w-0 [--container-height:680px]"
+					className="min-w-0"
+					flow
 				>
-					<ActiveDemo />
+					<ActiveDemo copy={copy.examples} />
 				</Container>
 			</div>
 		</section>

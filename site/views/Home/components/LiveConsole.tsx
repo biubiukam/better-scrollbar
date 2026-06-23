@@ -51,11 +51,7 @@ export function LiveConsole({ copy }: { copy: HomeCopy }) {
 								<div className="h-full w-[58%] rounded-full bg-primary" />
 							</div>
 						</div>
-						<div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-							<div className="rounded-md border border-border bg-card/70 p-3">
-								<span className="text-xs text-muted-foreground">{copy.consoleDom}</span>
-								<strong className="mt-1 block font-mono text-lg text-card-foreground">24</strong>
-							</div>
+						<div className="grid gap-2">
 							<div className="rounded-md border border-border bg-card/70 p-3">
 								<span className="text-xs text-muted-foreground">{copy.consoleOffset}</span>
 								<strong className="mt-1 block font-mono text-lg text-card-foreground">8.42e8</strong>

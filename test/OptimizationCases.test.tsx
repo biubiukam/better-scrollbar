@@ -1,8 +1,8 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import React from "react"
 import { describe, expect, it } from "vitest"
-import OptimizationCases from "../site/examplex/OptimizationCases/OptimizationCases"
-import { ESTIMATED_MILLION_ROW_HEIGHT, MILLION_ROW_COUNT } from "../site/examplex/sharedMillion"
+import OptimizationCases from "../site/components/OptimizationCases/OptimizationCases"
+import { ESTIMATED_MILLION_ROW_HEIGHT, MILLION_ROW_COUNT } from "../site/components/ExampleSupport/sharedMillion"
 import "../src/styles/index.less"
 
 describe("OptimizationCases", () => {
@@ -24,14 +24,15 @@ describe("OptimizationCases", () => {
 		})
 	})
 
-	it("shows the advanced case with sticky grouping and virtualized accessibility metadata", () => {
+	it("shows the advanced case with sticky grouping and default list metadata", () => {
 		const { container } = render(<OptimizationCases/>)
 		const advancedCase = container.querySelector("[data-case-id='grouped-product-shell']")
 		const firstGroupCount = Number(advancedCase?.querySelector(".optimization-group-row strong")?.textContent?.match(/\d+/)?.[0])
 
 		expect(advancedCase).not.toBeNull()
 		expect(advancedCase?.querySelector(".scroll-bar-sticky-item")).not.toBeNull()
-		expect(advancedCase?.querySelector("[role='grid']")?.getAttribute("aria-rowcount")).toBe(String(MILLION_ROW_COUNT))
+		expect(advancedCase?.querySelector("[role='list']")).not.toBeNull()
+		expect(advancedCase?.querySelector("[role='listitem']")?.getAttribute("aria-setsize")).toBe(String(MILLION_ROW_COUNT))
 		expect(firstGroupCount).toBeGreaterThanOrEqual(5)
 		expect(firstGroupCount).toBeLessThanOrEqual(15)
 	})

@@ -1,7 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import React from "react"
 import { describe, expect, it, vi } from "vitest"
-import ScenarioPlayground from "../site/examplex/ScenarioPlayground/ScenarioPlayground"
+import ScenarioPlayground from "../site/components/ScenarioPlayground/ScenarioPlayground"
 import "../src/styles/index.less"
 
 const sortableCreate = vi.hoisted(() => vi.fn(() => ({destroy: vi.fn()})))
@@ -38,7 +38,6 @@ describe("ScenarioPlayground", () => {
 		})
 
 		expect(getByText("groupCounts: enabled")).toBeTruthy()
-		expect(getByText("accessibility: grid")).toBeTruthy()
 
 		act(() => {
 			fireEvent.change(getByRole("combobox", {name: "高度策略"}), {target: {value: "dynamic"}})
