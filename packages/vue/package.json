@@ -8,7 +8,7 @@
 	"homepage": "https://biubiukam.github.io/better-scrollbar/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/biubiukam/better-scrollbar",
+		"url": "git+https://github.com/biubiukam/better-scrollbar.git",
 		"directory": "packages/vue"
 	},
 	"bugs": {
@@ -32,7 +32,7 @@
 	"main": "dist/better-scrollbar-vue.cjs",
 	"module": "dist/better-scrollbar-vue.es.mjs",
 	"unpkg": "dist/BetterScrollbarVue.min.js",
-	"typings": "dist/types/index.d.ts",
+	"types": "dist/types/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/types/index.d.ts",
@@ -49,12 +49,13 @@
 	],
 	"files": [
 		"dist",
-		"src/styles"
+		"src/styles",
+		"LICENSE"
 	],
 	"scripts": {
-		"build": "pnpm --filter @better-scrollbar/core build && vite build --config vite.config.mts && vue-tsc -p tsconfig.json --declaration --emitDeclarationOnly",
-		"typecheck": "pnpm --filter @better-scrollbar/core build && vue-tsc -p tsconfig.json --noEmit",
-		"test": "vitest run ../../test/vuePackage.test.ts",
+		"build": "vite build --config vite.config.mts && vue-tsc -p tsconfig.json --declaration --emitDeclarationOnly",
+		"typecheck": "vue-tsc -p tsconfig.json --noEmit",
+		"test": "vitest run --config vitest.config.mts",
 		"clean": "rimraf dist"
 	},
 	"peerDependencies": {
@@ -65,6 +66,7 @@
 		"@better-scrollbar/core": "workspace:*",
 		"@vitejs/plugin-vue": "^5.2.4",
 		"@vue/test-utils": "^2.4.6",
+		"jsdom": "^20.0.0",
 		"less": "^4.2.0",
 		"typescript": "^5.3.2",
 		"vite": "^5.0.8",

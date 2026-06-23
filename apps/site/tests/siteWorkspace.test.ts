@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 import { describe, expect, it } from "vitest"
 
-const repoRoot = path.resolve(__dirname, "..")
+const repoRoot = path.resolve(__dirname, "../../..")
 
 const readJson = (filePath: string) => JSON.parse(fs.readFileSync(filePath, "utf8"))
 

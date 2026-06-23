@@ -103,9 +103,7 @@ better-scrollbar/
 │   └── vue/        # @better-scrollbar/vue — Vue 3 component & composables
 ├── apps/
 │   └── site/       # Documentation site (React)
-├── src/
-│   └── index.ts    # Compatibility re-export (better-scrollbar → @better-scrollbar/react)
-├── test/           # Shared test suites
+├── build/          # Compatibility package entry (re-exports @better-scrollbar/react)
 └── docs/           # Design docs and detailed API reference
 ```
 

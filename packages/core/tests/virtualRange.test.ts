@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createVirtualHeightIndex, createVirtualHeightIndexStore } from "../src/virtualRange"
+import { createVirtualHeightIndex, createVirtualHeightIndexStore } from "@better-scrollbar/core"
 
 describe("virtual range index", () => {
 	it("calculates offsets and ranges for sparse dynamic heights", () => {
@@ -9,24 +9,26 @@ describe("virtual range index", () => {
 			measuredHeights: new Map([
 				[0, 100],
 				[10, 5],
-				[49_999_999, 80],
-			]),
+				[49_999_999, 80]
+			])
 		})
 
 		expect(index.totalHeight).toBe(1_000_000_125)
 		expect(index.getOffset(1)).toBe(100)
 		expect(index.getOffset(11)).toBe(285)
-		expect(index.getRange({
-			scrollOffset: 280,
-			viewportSize: 40,
-			overscan: 1,
-		})).toEqual({
+		expect(
+			index.getRange({
+				scrollOffset: 280,
+				viewportSize: 40,
+				overscan: 1
+			})
+		).toEqual({
 			start: 9,
 			end: 13,
 			visibleStartIndex: 10,
 			visibleEndIndex: 12,
 			offset: 260,
-			scrollHeight: 1_000_000_125,
+			scrollHeight: 1_000_000_125
 		})
 	})
 
@@ -39,7 +41,7 @@ describe("virtual range index", () => {
 		const index = createVirtualHeightIndex({
 			itemCount: 50_000_000,
 			estimatedItemHeight: 32,
-			measuredHeights,
+			measuredHeights
 		})
 		const startedAt = performance.now()
 
@@ -47,7 +49,7 @@ describe("virtual range index", () => {
 			index.getRange({
 				scrollOffset: (i * 123_457) % index.totalHeight,
 				viewportSize: 720,
-				overscan: 3,
+				overscan: 3
 			})
 		}
 
@@ -59,7 +61,7 @@ describe("virtual range index", () => {
 		const index = createVirtualHeightIndex({
 			itemCount: 1_000_000,
 			estimatedItemHeight: 40,
-			blockSize: 1,
+			blockSize: 1
 		})
 
 		for (let i = 0; i < 5_000; i++) {
@@ -68,42 +70,46 @@ describe("virtual range index", () => {
 				viewportSize: 800,
 				overscan: { before: 2, after: 4 },
 				overscanPixels: { before: 120, after: 160 },
-				maxItems: 40,
+				maxItems: 40
 			})
 		}
 
 		expect(performance.now() - startedAt).toBeLessThan(30)
-		expect(index.getRange({
-			scrollOffset: 39_999_200,
-			viewportSize: 800,
-			overscan: 1,
-		})).toEqual({
+		expect(
+			index.getRange({
+				scrollOffset: 39_999_200,
+				viewportSize: 800,
+				overscan: 1
+			})
+		).toEqual({
 			start: 999_979,
 			end: 999_999,
 			visibleStartIndex: 999_980,
 			visibleEndIndex: 999_999,
 			offset: 39_999_160,
-			scrollHeight: 40_000_000,
+			scrollHeight: 40_000_000
 		})
 	})
 
 	it("supports asymmetric overscan for direction-aware pre-rendering", () => {
 		const index = createVirtualHeightIndex({
 			itemCount: 20,
-			estimatedItemHeight: 20,
+			estimatedItemHeight: 20
 		})
 
-		expect(index.getRange({
-			scrollOffset: 100,
-			viewportSize: 40,
-			overscan: { before: 1, after: 4 },
-		})).toEqual({
+		expect(
+			index.getRange({
+				scrollOffset: 100,
+				viewportSize: 40,
+				overscan: { before: 1, after: 4 }
+			})
+		).toEqual({
 			start: 4,
 			end: 10,
 			visibleStartIndex: 5,
 			visibleEndIndex: 6,
 			offset: 80,
-			scrollHeight: 400,
+			scrollHeight: 400
 		})
 	})
 
@@ -111,21 +117,23 @@ describe("virtual range index", () => {
 		const index = createVirtualHeightIndex({
 			itemCount: 10,
 			estimatedItemHeight: 20,
-			measuredHeights: new Map([[0, 100]]),
+			measuredHeights: new Map([[0, 100]])
 		})
 
-		expect(index.getRange({
-			scrollOffset: 100,
-			viewportSize: 20,
-			overscan: 0,
-			overscanPixels: { before: 50, after: 60 },
-		})).toEqual({
+		expect(
+			index.getRange({
+				scrollOffset: 100,
+				viewportSize: 20,
+				overscan: 0,
+				overscanPixels: { before: 50, after: 60 }
+			})
+		).toEqual({
 			start: 0,
 			end: 4,
 			visibleStartIndex: 1,
 			visibleEndIndex: 1,
 			offset: 0,
-			scrollHeight: 280,
+			scrollHeight: 280
 		})
 	})
 
@@ -133,7 +141,7 @@ describe("virtual range index", () => {
 		const index = createVirtualHeightIndexStore({
 			itemCount: 50_000_000,
 			estimatedItemHeight: 20,
-			blockSize: 128,
+			blockSize: 128
 		})
 
 		const sameIndex = index.setMeasuredHeight(10, 80)
@@ -158,7 +166,7 @@ describe("virtual range index", () => {
 		const index = createVirtualHeightIndexStore({
 			itemCount: 100,
 			estimatedItemHeight: 10,
-			maxMeasuredItems: 2,
+			maxMeasuredItems: 2
 		})
 
 		index.setMeasuredHeight(0, 20)
@@ -174,7 +182,7 @@ describe("virtual range index", () => {
 		const index = createVirtualHeightIndexStore({
 			itemCount: 100,
 			estimatedItemHeight: 10,
-			maxMeasuredItems: Number.NaN,
+			maxMeasuredItems: Number.NaN
 		})
 
 		index.setMeasuredHeight(0, 20)
@@ -188,20 +196,22 @@ describe("virtual range index", () => {
 	it("handles empty lists and ignores invalid measured heights", () => {
 		const index = createVirtualHeightIndexStore({
 			itemCount: 0,
-			estimatedItemHeight: 20,
+			estimatedItemHeight: 20
 		})
 
-		expect(index.getRange({
-			scrollOffset: 100,
-			viewportSize: 40,
-			overscan: 1,
-		})).toEqual({
+		expect(
+			index.getRange({
+				scrollOffset: 100,
+				viewportSize: 40,
+				overscan: 1
+			})
+		).toEqual({
 			scrollHeight: 0,
 			start: 0,
 			end: -1,
 			visibleStartIndex: 0,
 			visibleEndIndex: -1,
-			offset: 0,
+			offset: 0
 		})
 		expect(index.setMeasuredHeight(0, 50)).toBe(index)
 		expect(index.deleteMeasuredHeight(0)).toBe(index)
@@ -211,20 +221,22 @@ describe("virtual range index", () => {
 	it("uses the start offset when the viewport size is zero", () => {
 		const index = createVirtualHeightIndex({
 			itemCount: 10,
-			estimatedItemHeight: 20,
+			estimatedItemHeight: 20
 		})
 
-		expect(index.getRange({
-			scrollOffset: 40,
-			viewportSize: 0,
-			overscan: 0,
-		})).toEqual({
+		expect(
+			index.getRange({
+				scrollOffset: 40,
+				viewportSize: 0,
+				overscan: 0
+			})
+		).toEqual({
 			start: 2,
 			end: 2,
 			visibleStartIndex: 2,
 			visibleEndIndex: 2,
 			offset: 40,
-			scrollHeight: 200,
+			scrollHeight: 200
 		})
 	})
 
@@ -232,20 +244,25 @@ describe("virtual range index", () => {
 		const index = createVirtualHeightIndex({
 			itemCount: 10,
 			estimatedItemHeight: 20,
-			measuredHeights: new Map([[0, 50], [1, 30]]),
+			measuredHeights: new Map([
+				[0, 50],
+				[1, 30]
+			])
 		})
 
-		expect(index.getRange({
-			scrollOffset: 50,
-			viewportSize: 0,
-			overscan: 0,
-		})).toEqual({
+		expect(
+			index.getRange({
+				scrollOffset: 50,
+				viewportSize: 0,
+				overscan: 0
+			})
+		).toEqual({
 			start: 1,
 			end: 1,
 			visibleStartIndex: 1,
 			visibleEndIndex: 1,
 			offset: 50,
-			scrollHeight: 240,
+			scrollHeight: 240
 		})
 	})
 })

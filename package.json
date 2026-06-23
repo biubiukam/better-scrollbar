@@ -3,6 +3,7 @@
 	"version": "2.0.0",
 	"description": "Highly customizable, high-performance virtual scrollbar component. This package re-exports @better-scrollbar/react for backward compatibility.",
 	"packageManager": "pnpm@10.11.0",
+	"type": "module",
 	"keywords": [
 		"react",
 		"vue",
@@ -21,7 +22,7 @@
 	"homepage": "https://biubiukam.github.io/better-scrollbar/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/biubiukam/better-scrollbar"
+		"url": "git+https://github.com/biubiukam/better-scrollbar.git"
 	},
 	"bugs": {
 		"url": "https://github.com/biubiukam/better-scrollbar/issues"
@@ -34,7 +35,7 @@
 	"main": "dist/better-scrollbar.cjs",
 	"module": "dist/better-scrollbar.es.mjs",
 	"unpkg": "dist/ScrollBar.min.js",
-	"typings": "dist/types/index.d.ts",
+	"types": "dist/types/library-entry.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/types/index.d.ts",
@@ -42,10 +43,7 @@
 			"require": "./dist/better-scrollbar.cjs",
 			"default": "./dist/better-scrollbar.es.mjs"
 		},
-		"./dist/ScrollBar.min.css": "./dist/ScrollBar.min.css",
-		"./dist/ScrollBar.min.js": "./dist/ScrollBar.min.js",
-		"./dist/better-scrollbar.es.mjs": "./dist/better-scrollbar.es.mjs",
-		"./dist/better-scrollbar.cjs": "./dist/better-scrollbar.cjs"
+		"./styles": "./dist/ScrollBar.min.css"
 	},
 	"sideEffects": [
 		"**/*.css",

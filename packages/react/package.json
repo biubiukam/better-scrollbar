@@ -8,7 +8,7 @@
 	"homepage": "https://biubiukam.github.io/better-scrollbar/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/biubiukam/better-scrollbar",
+		"url": "git+https://github.com/biubiukam/better-scrollbar.git",
 		"directory": "packages/react"
 	},
 	"bugs": {
@@ -32,7 +32,7 @@
 	"main": "dist/better-scrollbar-react.cjs",
 	"module": "dist/better-scrollbar-react.es.mjs",
 	"unpkg": "dist/BetterScrollbarReact.min.js",
-	"typings": "dist/types/index.d.ts",
+	"types": "dist/types/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/types/index.d.ts",
@@ -48,12 +48,13 @@
 	],
 	"files": [
 		"dist",
-		"src/styles"
+		"src/styles",
+		"LICENSE"
 	],
 	"scripts": {
-		"build": "pnpm --filter @better-scrollbar/core build && vite build --config vite.config.mts && tsc -p tsconfig.json --emitDeclarationOnly",
-		"typecheck": "pnpm --filter @better-scrollbar/core build && tsc -p tsconfig.json --noEmit",
-		"test": "vitest run ../../test/reactPackage.test.tsx ../../test/ScrollBar.test.tsx ../../test/internalComponents.test.tsx",
+		"build": "vite build --config vite.config.mts && tsc -p tsconfig.json --emitDeclarationOnly",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"test": "vitest run --config vitest.config.mts",
 		"clean": "rimraf dist"
 	},
 	"dependencies": {
@@ -66,10 +67,12 @@
 	},
 	"devDependencies": {
 		"@better-scrollbar/core": "workspace:*",
+		"@testing-library/react": "^14.0.0",
 		"@types/node": "^20.10.3",
 		"@types/react": "^18.2.43",
 		"@types/react-dom": "^18.2.17",
 		"@vitejs/plugin-react": "^4.2.0",
+		"jsdom": "^20.0.0",
 		"less": "^4.2.0",
 		"react": ">=16.9.0",
 		"react-dom": ">=16.9.0",

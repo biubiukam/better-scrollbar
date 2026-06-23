@@ -1,0 +1,9 @@
+dist/
+packages/*/dist/
+apps/*/dist/
+dist-site/
+coverage/
+node_modules/
+.turbo/
+pnpm-lock.yaml
+*.tsbuildinfo

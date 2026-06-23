@@ -2,46 +2,50 @@ name: Bug report
 description: Report a reproducible problem with better-scrollbar.
 title: "[Bug]: "
 labels:
-  - bug
+    - bug
 body:
-  - type: textarea
-    id: summary
-    attributes:
-      label: Summary
-      description: Describe the problem and the expected behavior.
-    validations:
-      required: true
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: Minimal reproduction
-      description: Link to a reproduction or paste the smallest code sample that shows the issue.
-      render: tsx
-    validations:
-      required: true
-  - type: input
-    id: version
-    attributes:
-      label: better-scrollbar version
-      placeholder: "1.0.2"
-    validations:
-      required: true
-  - type: input
-    id: react-version
-    attributes:
-      label: React and React DOM versions
-      placeholder: "react@18.2.0, react-dom@18.2.0"
-    validations:
-      required: true
-  - type: input
-    id: environment
-    attributes:
-      label: Browser and operating system
-      placeholder: "Chrome 126 on macOS 15"
-    validations:
-      required: true
-  - type: textarea
-    id: notes
-    attributes:
-      label: Additional context
-      description: Add screenshots, logs, or other details that may help diagnose the issue.
+    - type: textarea
+      id: summary
+      attributes:
+          label: Summary
+          description: Describe the problem and the expected behavior.
+      validations:
+          required: true
+    - type: textarea
+      id: reproduction
+      attributes:
+          label: Minimal reproduction
+          description: Link to a reproduction or paste the smallest code sample that shows the issue.
+          render: tsx
+      validations:
+          required: true
+    - type: dropdown
+      id: framework
+      attributes:
+          label: Framework
+          description: Which framework adapter are you using?
+          options:
+              - "@better-scrollbar/react"
+              - "@better-scrollbar/vue"
+              - "@better-scrollbar/core (standalone)"
+      validations:
+          required: true
+    - type: input
+      id: framework-version
+      attributes:
+          label: Framework and adapter version
+          placeholder: "react@18.2.0, @better-scrollbar/react@2.0.0 (or vue@3.5.0, @better-scrollbar/vue@1.0.0)"
+      validations:
+          required: false
+    - type: input
+      id: environment
+      attributes:
+          label: Browser and operating system
+          placeholder: "Chrome 126 on macOS 15"
+      validations:
+          required: true
+    - type: textarea
+      id: notes
+      attributes:
+          label: Additional context
+          description: Add screenshots, logs, or other details that may help diagnose the issue.

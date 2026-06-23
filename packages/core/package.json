@@ -8,7 +8,7 @@
 	"homepage": "https://biubiukam.github.io/better-scrollbar/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/biubiukam/better-scrollbar",
+		"url": "git+https://github.com/biubiukam/better-scrollbar.git",
 		"directory": "packages/core"
 	},
 	"bugs": {
@@ -29,7 +29,7 @@
 	"main": "dist/better-scrollbar-core.cjs",
 	"module": "dist/better-scrollbar-core.es.mjs",
 	"unpkg": "dist/BetterScrollbarCore.min.js",
-	"typings": "dist/types/index.d.ts",
+	"types": "dist/types/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/types/index.d.ts",
@@ -45,12 +45,13 @@
 	],
 	"files": [
 		"dist",
-		"src/styles"
+		"src/styles",
+		"LICENSE"
 	],
 	"scripts": {
 		"build": "vite build --config vite.config.mts && tsc -p tsconfig.json --emitDeclarationOnly",
 		"typecheck": "tsc -p tsconfig.json --noEmit",
-		"test": "vitest run ../../test/corePackage.test.ts ../../test/virtualRange.test.ts",
+		"test": "vitest run --config vitest.config.mts",
 		"clean": "rimraf dist"
 	},
 	"devDependencies": {

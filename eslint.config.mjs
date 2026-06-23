@@ -44,4 +44,25 @@ export default tseslint.config(
 			],
 		},
 	},
+
+	{
+		files: ["**/*.d.ts"],
+		rules: {
+			"no-var": "off",
+		},
+	},
+
+	{
+		files: ["*.config.js", "babel.config.js", "postcss.config.js"],
+		languageOptions: {
+			globals: {
+				module: "readonly",
+				require: "readonly",
+				__dirname: "readonly",
+			},
+		},
+		rules: {
+			"@typescript-eslint/no-require-imports": "off",
+		},
+	},
 )

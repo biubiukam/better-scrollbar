@@ -1,12 +1,12 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import React from "react"
 import { describe, expect, it } from "vitest"
-import OptimizationCases from "../apps/site/components/OptimizationCases/OptimizationCases"
+import OptimizationCases from "../components/OptimizationCases/OptimizationCases"
 import {
 	ESTIMATED_MILLION_ROW_HEIGHT,
 	MILLION_ROW_COUNT
-} from "../apps/site/components/ExampleSupport/sharedMillion"
-import "../src/styles/index.less"
+} from "../components/ExampleSupport/sharedMillion"
+import "@better-scrollbar/react/styles/index.less"
 
 describe("OptimizationCases", () => {
 	it("renders the four product-grade 100-million-row advantage cards", () => {

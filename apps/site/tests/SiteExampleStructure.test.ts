@@ -2,7 +2,7 @@ import fs from "fs"
 import path from "path"
 import { describe, expect, it } from "vitest"
 
-const repoRoot = path.resolve(__dirname, "..")
+const repoRoot = path.resolve(__dirname, "../../..")
 const exampleRoot = path.join(repoRoot, "apps/site/examplex")
 
 describe("site example case structure", () => {

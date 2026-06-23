@@ -18,10 +18,6 @@ export const siteResolveConfig: UserConfig["resolve"] = {
 			replacement: siteRoot
 		},
 		{
-			find: "ScrollBar",
-			replacement: join(configDir, "src")
-		},
-		{
 			find: "@better-scrollbar/react",
 			replacement: join(configDir, "packages/react/src")
 		},
@@ -32,6 +28,10 @@ export const siteResolveConfig: UserConfig["resolve"] = {
 		{
 			find: "@better-scrollbar/core",
 			replacement: join(configDir, "packages/core/src")
+		},
+		{
+			find: "sortablejs",
+			replacement: join(configDir, "apps/site/node_modules/sortablejs")
 		}
 	]
 }

@@ -3,20 +3,20 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import React from "react"
 import { describe, expect, it, vi } from "vitest"
-import { HOME_COPY } from "../apps/site/i18n/home"
-import { AgentConversationDemo } from "../apps/site/examplex/AgentConversationCase"
-import { AgentMessageRow } from "../apps/site/examplex/AgentConversationCase/components"
-import { AuditLogDemo } from "../apps/site/examplex/AuditLogCase"
-import { MediaSearchDemo } from "../apps/site/examplex/MediaSearchCase"
-import { RuleQueueDemo } from "../apps/site/examplex/RuleQueueCase"
+import { HOME_COPY } from "../i18n/home"
+import { AgentConversationDemo } from "../examplex/AgentConversationCase"
+import { AgentMessageRow } from "../examplex/AgentConversationCase/components"
+import { AuditLogDemo } from "../examplex/AuditLogCase"
+import { MediaSearchDemo } from "../examplex/MediaSearchCase"
+import { RuleQueueDemo } from "../examplex/RuleQueueCase"
 import {
 	AGENT_STREAM_CHUNK_MS,
 	MOCK_AGENT_CONVERSATION,
 	createMockAgentStream
-} from "../apps/site/examplex/AgentConversationCase/mockData"
-import { DemosSection } from "../apps/site/views/Home/components/DemosSection"
-import { DEMOS } from "../apps/site/views/Home/data"
-import "../src/styles/index.less"
+} from "../examplex/AgentConversationCase/mockData"
+import { DemosSection } from "../views/Home/components/DemosSection"
+import { DEMOS } from "../views/Home/data"
+import "@better-scrollbar/react/styles/index.less"
 
 const EXAMPLEX_ROOT = join(process.cwd(), "apps/site/examplex")
 const AGENT_LABELS = {

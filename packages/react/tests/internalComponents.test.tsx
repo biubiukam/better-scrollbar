@@ -1,17 +1,17 @@
 import React from "react"
 import { act, fireEvent, render } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import InternalScrollBar from "../src/components/ScrollBar"
-import { Item } from "../src/components/Item"
+import InternalScrollBar from "@better-scrollbar/react/components/ScrollBar"
+import { Item } from "@better-scrollbar/react/components/Item"
 import {
 	renderThumbHorizontalDefault,
 	renderThumbVerticalDefault,
 	renderTrackHorizontalDefault,
 	renderTrackVerticalDefault,
 	renderViewDefault
-} from "../src/defaultRenderElements"
-import type { ScrollState } from "../src/types"
-import { findDOMNode, getPageXY } from "../src/utils"
+} from "@better-scrollbar/react/defaultRenderElements"
+import type { ScrollState } from "@better-scrollbar/react/types"
+import { findDOMNode, getPageXY } from "@better-scrollbar/react/utils"
 
 const baseScrollState: ScrollState = {
 	x: 0,
@@ -49,11 +49,7 @@ describe("internal component utilities", () => {
 	it("merges hidden styles for cloned items", () => {
 		const setRef = vi.fn()
 		const { container } = render(
-			<Item
-				hidden
-				itemProps={{ className: "extra", style: { height: 12 } }}
-				setRef={setRef}
-			>
+			<Item hidden itemProps={{ className: "extra", style: { height: 12 } }} setRef={setRef}>
 				<div className="base" style={{ color: "red" }}>
 					row
 				</div>

@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react"
 import React from "react"
 import { describe, expect, it, vi } from "vitest"
-import { TooltipProvider } from "../apps/site/components/ui/tooltip"
-import Home from "../apps/site/views/Home"
-import "../src/styles/index.less"
+import { TooltipProvider } from "../components/ui/tooltip"
+import Home from "../views/Home"
+import "@better-scrollbar/react/styles/index.less"
 
-vi.mock("../src", async () => {
+vi.mock("@better-scrollbar/react", async () => {
 	const ReactModule = await import("react")
 
 	const MockVirtualScrollBar = ReactModule.forwardRef((props: Record<string, unknown>, ref) => {

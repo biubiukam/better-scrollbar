@@ -27,7 +27,7 @@ jobs:
                   node-version: 20
                   cache: pnpm
 
-            - run: pnpm install
+            - run: pnpm install --frozen-lockfile
 
             - name: Lint
               run: pnpm run lint
@@ -45,7 +45,7 @@ jobs:
                   node-version: 20
                   cache: pnpm
 
-            - run: pnpm install
+            - run: pnpm install --frozen-lockfile
 
             - name: Build packages
               run: pnpm run build
@@ -55,6 +55,9 @@ jobs:
 
     test:
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node-version: [18, 20]
         steps:
             - uses: actions/checkout@v4
 
@@ -63,14 +66,14 @@ jobs:
 
             - uses: actions/setup-node@v4
               with:
-                  node-version: 20
+                  node-version: ${{ matrix.node-version }}
                   cache: pnpm
 
-            - run: pnpm install
+            - run: pnpm install --frozen-lockfile
 
             - name: Test with coverage
               run: pnpm run test
 
             - name: Upload coverage
-              if: github.event_name != 'pull_request'
+              if: github.event_name != 'pull_request' && matrix.node-version == 20
               uses: coverallsapp/github-action@v2

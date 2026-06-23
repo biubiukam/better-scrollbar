@@ -1,9 +1,9 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import React from "react"
 import { describe, expect, it, vi } from "vitest"
-import ScenarioPlayground from "../apps/site/components/ScenarioPlayground/ScenarioPlayground"
-import { EXAMPLE_COPY } from "../apps/site/i18n/examples"
-import "../src/styles/index.less"
+import ScenarioPlayground from "../components/ScenarioPlayground/ScenarioPlayground"
+import { EXAMPLE_COPY } from "../i18n/examples"
+import "@better-scrollbar/react/styles/index.less"
 
 const sortableCreate = vi.hoisted(() => vi.fn(() => ({ destroy: vi.fn() })))
 type MockSortableOptions = {

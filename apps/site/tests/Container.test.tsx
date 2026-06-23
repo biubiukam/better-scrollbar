@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react"
 import React from "react"
 import { describe, expect, it } from "vitest"
-import Container from "../apps/site/components/Container"
+import Container from "../components/Container"
 
 describe("site Container", () => {
 	it("renders with Tailwind utility classes instead of CSS module class names", () => {
