@@ -12,8 +12,10 @@ function Container({title, desc, className, flow = false, children}: PropsWithCh
 	return (
 		<div
 			className={ cn(
-				"flex h-[var(--container-height,100%)] w-full min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-[var(--site-shadow-card)] max-md:h-auto max-md:overflow-visible",
-				flow && "h-auto overflow-visible",
+				"flex w-full min-w-0 flex-col rounded-lg border border-border bg-card text-card-foreground shadow-[var(--site-shadow-card)]",
+				flow
+					? "h-auto overflow-visible"
+					: "h-[var(--container-height,100%)] overflow-hidden max-md:h-auto max-md:overflow-visible",
 				className
 			) }
 		>

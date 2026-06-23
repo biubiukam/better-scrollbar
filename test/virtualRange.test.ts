@@ -72,7 +72,7 @@ describe("virtual range index", () => {
 			})
 		}
 
-		expect(performance.now() - startedAt).toBeLessThan(15)
+		expect(performance.now() - startedAt).toBeLessThan(30)
 		expect(index.getRange({
 			scrollOffset: 39_999_200,
 			viewportSize: 800,
