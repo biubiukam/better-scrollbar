@@ -22,4 +22,6 @@ coverage
 .idea
 .npmrc
 package-lock.json
+pnpm-lock.yaml
+yarn.lock
 .vscode
