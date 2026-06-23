@@ -1,0 +1,557 @@
+* {
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+}
+
+:root {
+	color-scheme: light;
+	--background: 216 33% 98%;
+	--foreground: 222 47% 10%;
+	--card: 0 0% 100%;
+	--card-foreground: 222 47% 10%;
+	--popover: 0 0% 100%;
+	--popover-foreground: 222 47% 10%;
+	--primary: 221 83% 53%;
+	--primary-foreground: 0 0% 100%;
+	--secondary: 215 25% 94%;
+	--secondary-foreground: 222 47% 12%;
+	--muted: 214 24% 94%;
+	--muted-foreground: 218 11% 42%;
+	--accent: 207 90% 54%;
+	--accent-foreground: 216 33% 98%;
+	--destructive: 0 72% 51%;
+	--destructive-foreground: 0 0% 100%;
+	--border: 216 18% 86%;
+	--input: 216 18% 86%;
+	--ring: 205 90% 54%;
+	--success: 158 64% 40%;
+	--success-foreground: 0 0% 100%;
+	--warning: 38 92% 50%;
+	--warning-foreground: 222 47% 10%;
+	--radius: 8px;
+	--site-background: hsl(var(--background));
+	--site-foreground: hsl(var(--foreground));
+	--site-card: hsl(var(--card));
+	--site-card-foreground: hsl(var(--card-foreground));
+	--site-muted: hsl(var(--muted));
+	--site-muted-foreground: hsl(var(--muted-foreground));
+	--site-subtle: hsl(var(--secondary));
+	--site-border: hsl(var(--border));
+	--site-border-strong: hsl(216 15% 78%);
+	--site-accent: hsl(var(--primary));
+	--site-accent-foreground: hsl(var(--primary-foreground));
+	--site-accent-soft: hsl(var(--primary) / 0.12);
+	--site-danger: hsl(var(--destructive));
+	--site-danger-soft: hsl(var(--destructive) / 0.08);
+	--site-warning: hsl(var(--warning));
+	--site-warning-soft: hsl(var(--warning) / 0.12);
+	--site-focus-soft: hsl(var(--primary) / 0.1);
+	--site-row-alert-bg: hsl(var(--destructive) / 0.06);
+	--site-row-focus-bg: hsl(var(--primary) / 0.08);
+	--site-row-warm-bg: hsl(var(--warning) / 0.1);
+	--site-shadow-card: 0 1px 2px hsl(222 47% 10% / 0.06), 0 18px 42px hsl(222 47% 10% / 0.08);
+	--site-radius-card: var(--radius);
+	--site-radius-control: 6px;
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--background: 222 36% 5%;
+	--foreground: 210 40% 96%;
+	--card: 222 30% 8%;
+	--card-foreground: 210 40% 96%;
+	--popover: 222 31% 7%;
+	--popover-foreground: 210 40% 96%;
+	--primary: 217 91% 60%;
+	--primary-foreground: 222 47% 7%;
+	--secondary: 218 24% 13%;
+	--secondary-foreground: 210 38% 94%;
+	--muted: 218 22% 13%;
+	--muted-foreground: 218 13% 66%;
+	--accent: 188 78% 52%;
+	--accent-foreground: 222 47% 7%;
+	--destructive: 0 72% 63%;
+	--destructive-foreground: 222 47% 7%;
+	--border: 218 22% 18%;
+	--input: 218 22% 18%;
+	--ring: 188 78% 52%;
+	--success: 156 71% 42%;
+	--success-foreground: 222 47% 7%;
+	--warning: 42 96% 56%;
+	--warning-foreground: 222 47% 7%;
+	--site-background: hsl(var(--background));
+	--site-foreground: hsl(var(--foreground));
+	--site-card: hsl(var(--card));
+	--site-card-foreground: hsl(var(--card-foreground));
+	--site-muted: hsl(var(--muted));
+	--site-muted-foreground: hsl(var(--muted-foreground));
+	--site-subtle: hsl(var(--secondary));
+	--site-border: hsl(var(--border));
+	--site-border-strong: hsl(218 20% 26%);
+	--site-accent: hsl(var(--primary));
+	--site-accent-foreground: hsl(var(--primary-foreground));
+	--site-accent-soft: hsl(var(--primary) / 0.16);
+	--site-danger: hsl(var(--destructive));
+	--site-danger-soft: hsl(var(--destructive) / 0.12);
+	--site-warning: hsl(var(--warning));
+	--site-warning-soft: hsl(var(--warning) / 0.14);
+	--site-focus-soft: hsl(var(--primary) / 0.14);
+	--site-row-alert-bg: hsl(var(--destructive) / 0.1);
+	--site-row-focus-bg: hsl(var(--primary) / 0.12);
+	--site-row-warm-bg: hsl(var(--warning) / 0.1);
+	--site-shadow-card: 0 1px 2px hsl(0 0% 0% / 0.32), 0 22px 54px hsl(0 0% 0% / 0.22);
+}
+
+html,
+body,
+#root {
+	min-height: 100%;
+	background: var(--site-background);
+	color: var(--site-foreground);
+}
+
+body {
+	font-family:
+		Inter,
+		ui-sans-serif,
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
+		"Segoe UI",
+		sans-serif;
+	overflow-x: hidden;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+	font: inherit;
+}
+
+button {
+	color: inherit;
+}
+
+:root .scroll-bar-vertical-thumb,
+:root .scroll-bar-horizontal-thumb {
+	background-color: color-mix(in srgb, var(--site-foreground) 46%, transparent);
+}
+
+:root .million-wrapper,
+:root .random-million-wrapper,
+:root .shadow-million-wrapper,
+:root .drag-million-wrapper,
+:root .custom-million-wrapper,
+:root .agent-demo-wrapper,
+:root .audit-demo-wrapper,
+:root .media-demo-wrapper,
+:root .rule-demo-wrapper {
+	min-width: 0;
+	overflow: hidden;
+	background: var(--site-card);
+	color: var(--site-card-foreground);
+}
+
+:root .million-head,
+:root .random-million-head,
+:root .shadow-million-head,
+:root .drag-million-head,
+:root .custom-million-head,
+:root .agent-demo-head,
+:root .audit-demo-head,
+:root .media-demo-head,
+:root .rule-demo-head {
+	min-width: 0;
+	min-height: 62px;
+	border-bottom-color: var(--site-border);
+	background: var(--site-card);
+}
+
+:root .million-head > div:first-child,
+:root .random-million-head > div:first-child,
+:root .shadow-million-head > div:first-child,
+:root .drag-million-head > div:first-child,
+:root .custom-million-head > div:first-child,
+:root .agent-demo-head > div:first-child,
+:root .audit-demo-head > div:first-child,
+:root .media-demo-head > div:first-child,
+:root .rule-demo-head > div:first-child {
+	min-width: 0;
+}
+
+:root .million-title,
+:root .random-million-title,
+:root .shadow-million-title,
+:root .drag-million-title-main,
+:root .custom-million-title {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--site-card-foreground);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-subtitle,
+:root .random-million-subtitle,
+:root .shadow-million-subtitle,
+:root .drag-million-subtitle,
+:root .custom-million-subtitle {
+	max-width: 100%;
+	overflow: hidden;
+	color: var(--site-muted-foreground);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-state,
+:root .random-million-state,
+:root .shadow-million-state,
+:root .drag-million-state,
+:root .custom-million-state {
+	min-width: 92px;
+	border-color: var(--site-border-strong);
+	background: var(--site-muted);
+	color: var(--site-muted-foreground);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+:root .million-state.is-active,
+:root .random-million-state.is-active,
+:root .shadow-million-state.is-active {
+	border-color: var(--site-accent);
+	background: var(--site-accent-soft);
+	color: var(--site-accent);
+}
+
+:root .million-metrics,
+:root .random-million-metrics {
+	border-bottom-color: var(--site-border);
+	background: var(--site-subtle);
+}
+
+:root .million-metric,
+:root .random-million-metrics > div {
+	min-height: 58px;
+	border: 1px solid var(--site-border);
+	border-radius: var(--site-radius-control);
+	background: var(--site-card);
+	padding: 8px 10px;
+}
+
+:root .million-metric span,
+:root .random-million-metrics span {
+	color: var(--site-muted-foreground);
+}
+
+:root .million-metric strong,
+:root .random-million-metrics strong {
+	min-height: 22px;
+	color: var(--site-card-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-list,
+:root .random-million-list,
+:root .shadow-million-list,
+:root .drag-million-list,
+:root .custom-million-list,
+:root .agent-demo-list,
+:root .audit-demo-list,
+:root .media-demo-list,
+:root .rule-demo-list {
+	min-height: 0;
+	border-bottom-color: var(--site-border);
+	background: var(--site-card);
+}
+
+:root .million-row,
+:root .random-million-item,
+:root .shadow-million-item,
+:root .drag-million-item,
+:root .custom-million-item,
+:root .agent-demo-row,
+:root .audit-demo-row,
+:root .media-demo-row,
+:root .rule-demo-row {
+	min-width: 0;
+	border-top-color: var(--site-border);
+	background: var(--site-card);
+	color: var(--site-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-row--alert,
+:root .random-million-item--alert,
+:root .audit-demo-row--alert {
+	background: var(--site-row-alert-bg);
+	border-left-color: var(--site-danger);
+}
+
+:root .million-row--focus,
+:root .random-million-item--focus,
+:root .drag-million-chosen,
+:root .agent-demo-row--focus,
+:root .audit-demo-row--focus,
+:root .media-demo-row--focus,
+:root .rule-demo-row--focus {
+	background: var(--site-row-focus-bg);
+	border-left-color: var(--site-accent);
+}
+
+:root .million-row--warm,
+:root .random-million-item--warm,
+:root .agent-demo-row--warm,
+:root .media-demo-row--warm,
+:root .rule-demo-row--warm {
+	background: var(--site-row-warm-bg);
+	border-left-color: var(--site-warning);
+}
+
+:root .million-row-index,
+:root .random-million-index,
+:root .shadow-million-item span:first-child,
+:root .drag-million-index,
+:root .custom-million-item span:first-child {
+	color: var(--site-card-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-row-title,
+:root .million-row-meta,
+:root .random-million-main,
+:root .drag-million-title,
+:root .drag-million-meta {
+	color: var(--site-muted-foreground);
+}
+
+:root .random-million-main span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-toolbar,
+:root .random-million-toolbar,
+:root .shadow-million-result,
+:root .drag-million-result,
+:root .custom-million-result,
+:root .agent-demo-result,
+:root .audit-demo-result,
+:root .media-demo-result,
+:root .rule-demo-result {
+	min-height: 58px;
+	border-top-color: var(--site-border);
+	background: var(--site-card);
+	color: var(--site-muted-foreground);
+	font-variant-numeric: tabular-nums;
+}
+
+:root .million-ranges,
+:root .shadow-million-result,
+:root .drag-million-result,
+:root .custom-million-result {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	align-items: center;
+}
+
+:root .million-ranges span,
+:root .random-million-toolbar > span,
+:root .shadow-million-result > span,
+:root .drag-million-result > span,
+:root .custom-million-result > span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .shadow-million-jumps {
+	grid-column: 1 / -1;
+	margin-left: 0;
+}
+
+:root .random-million-toolbar {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	align-items: center;
+}
+
+:root .random-million-jumps {
+	grid-column: 1 / -1;
+	margin-left: 0;
+}
+
+:root .million-actions,
+:root .random-million-jumps,
+:root .shadow-million-jumps {
+	min-width: 0;
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 6px;
+}
+
+:root .million-toolbar button,
+:root .random-million-actions button,
+:root .random-million-jumps button,
+:root .shadow-million-jumps button,
+:root .agent-demo-toolbar button,
+:root .audit-demo-toolbar button,
+:root .media-demo-toolbar button,
+:root .rule-demo-toolbar button {
+	min-width: 0;
+	border-color: var(--site-border-strong);
+	background: var(--site-card);
+	color: var(--site-card-foreground);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+:root .million-toolbar button:hover,
+:root .random-million-actions button:hover,
+:root .random-million-jumps button:hover,
+:root .shadow-million-jumps button:hover,
+:root .agent-demo-toolbar button:hover,
+:root .audit-demo-toolbar button:hover,
+:root .media-demo-toolbar button:hover,
+:root .rule-demo-toolbar button:hover {
+	border-color: var(--site-accent);
+	background: var(--site-muted);
+}
+
+:root .random-million-actions button.is-danger {
+	border-color: color-mix(in srgb, var(--site-danger) 50%, var(--site-border));
+	color: var(--site-danger);
+}
+
+:root .million-progress {
+	color: var(--site-muted-foreground);
+
+	input {
+		accent-color: var(--site-accent);
+	}
+}
+
+:root .shadow-million-top {
+	background: linear-gradient(
+		to bottom,
+		color-mix(in srgb, var(--site-foreground) 22%, transparent),
+		transparent
+	);
+}
+
+:root .shadow-million-bottom {
+	background: linear-gradient(
+		to top,
+		color-mix(in srgb, var(--site-foreground) 22%, transparent),
+		transparent
+	);
+}
+
+@media (max-width: 768px) {
+	:root .million-wrapper,
+	:root .random-million-wrapper,
+	:root .shadow-million-wrapper,
+	:root .drag-million-wrapper,
+	:root .custom-million-wrapper,
+	:root .agent-demo-wrapper,
+	:root .audit-demo-wrapper,
+	:root .media-demo-wrapper,
+	:root .rule-demo-wrapper {
+		height: auto;
+		overflow: visible;
+	}
+
+	:root .million-list,
+	:root .random-million-list,
+	:root .shadow-million-list,
+	:root .drag-million-list,
+	:root .custom-million-list,
+	:root .agent-demo-list,
+	:root .audit-demo-list,
+	:root .media-demo-list,
+	:root .rule-demo-list {
+		flex: none;
+	}
+
+	:root .random-million-list {
+		height: 320px;
+	}
+
+	:root .shadow-million-list {
+		height: 360px;
+	}
+
+	:root .drag-million-list,
+	:root .custom-million-list,
+	:root .agent-demo-list,
+	:root .audit-demo-list,
+	:root .media-demo-list,
+	:root .rule-demo-list {
+		height: 360px;
+	}
+}
+
+@media (max-width: 620px) {
+	:root .million-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	:root .random-million-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	:root .random-million-metrics > div:last-child {
+		grid-column: 1 / -1;
+	}
+
+	:root .million-ranges,
+	:root .shadow-million-result,
+	:root .drag-million-result,
+	:root .custom-million-result {
+		grid-template-columns: 1fr;
+	}
+
+	:root .million-actions,
+	:root .random-million-jumps,
+	:root .shadow-million-jumps {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	:root .random-million-item {
+		grid-template-columns: minmax(0, 1fr) auto;
+		display: grid;
+	}
+
+	:root .random-million-main {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 42px;
+		gap: 8px;
+	}
+
+	:root .random-million-index {
+		min-width: 0;
+	}
+
+	:root .random-million-main span:nth-child(2) {
+		display: none;
+	}
+
+	:root .random-million-actions {
+		gap: 4px;
+
+		button {
+			width: 54px;
+			padding: 0;
+		}
+
+		button.is-danger {
+			width: 66px;
+		}
+	}
+}

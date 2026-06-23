@@ -4,16 +4,31 @@
 [![NPM License](https://img.shields.io/npm/l/better-scrollbar)](./LICENSE)
 [![Coverage Status](https://coveralls.io/repos/github/biubiukam/better-scrollbar/badge.svg?branch=master)](https://coveralls.io/github/biubiukam/better-scrollbar?branch=master)
 
-A highly customizable, high-performance React virtual scrollbar component for
-rendering large data sets with custom horizontal and vertical scrollbars.
+A highly customizable, high-performance virtual scrollbar for rendering large
+data sets. Ships framework-specific adapters for **React** and **Vue 3**, built
+on a shared framework-agnostic core.
+
+## Packages
+
+| Package                                     | Description                                                  | Version                                                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| [`@better-scrollbar/core`](packages/core)   | Framework-neutral algorithms and utilities                   | [![npm](https://img.shields.io/npm/v/@better-scrollbar/core)](https://www.npmjs.com/package/@better-scrollbar/core)   |
+| [`@better-scrollbar/react`](packages/react) | React adapter (component, hooks, render props)               | [![npm](https://img.shields.io/npm/v/@better-scrollbar/react)](https://www.npmjs.com/package/@better-scrollbar/react) |
+| [`@better-scrollbar/vue`](packages/vue)     | Vue 3 adapter (component, composables)                       | [![npm](https://img.shields.io/npm/v/@better-scrollbar/vue)](https://www.npmjs.com/package/@better-scrollbar/vue)     |
+| [`better-scrollbar`](.)                     | Compatibility wrapper — re-exports `@better-scrollbar/react` | [![npm](https://img.shields.io/npm/v/better-scrollbar)](https://www.npmjs.com/package/better-scrollbar)               |
+
+> **Migrating from v1?** The `better-scrollbar` package continues to export the
+> same React API. No changes are required unless you want to switch to the
+> scoped `@better-scrollbar/react` import.
 
 ## Features
 
-- **Children mode** for regular React lists with familiar JSX syntax.
-- **Indexed rendering** with `itemCount` + `renderItem` for massive data sets
-  (millions of rows).
+- **Children mode** for regular lists with familiar JSX / slot syntax.
+- **Indexed rendering** with `itemCount` + `renderItem` / scoped slot for
+  massive data sets (millions of rows).
 - **Dynamic height measurement** via a shared `ResizeObserver` with LRU cache.
-- **Custom scrollbar** tracks, thumbs, and view wrappers through render props.
+- **Custom scrollbar** tracks, thumbs, and view wrappers through render props
+  (React) or slots (Vue).
 - **Scroll anchoring** that preserves visible position during prepend and resize.
 - **Bottom-following output** for log and chat-style views.
 - **Sticky rows** and group headers with `stickyIndices` / `groupCounts`.
@@ -23,154 +38,97 @@ rendering large data sets with custom horizontal and vertical scrollbars.
 - **Accessibility** with built-in `role="list"` / `role="listitem"` and ARIA
   position metadata.
 
-## Requirements
-
-- React >= 16.9.0
-- Node >= 18 (for development)
-
-## Installation
-
-```bash
-# pnpm (recommended)
-pnpm add better-scrollbar
-
-# npm
-npm install better-scrollbar
-
-# yarn
-yarn add better-scrollbar
-```
-
 ## Quick Start
 
+### React
+
+```bash
+pnpm add @better-scrollbar/react @better-scrollbar/core
+```
+
 ```tsx
-import ScrollBar from "better-scrollbar"
-import "better-scrollbar/dist/ScrollBar.min.css"
+import ScrollBar from "@better-scrollbar/react"
+import "@better-scrollbar/react/styles/ScrollBar.less"
 
 export default function BasicList() {
-  return (
-    <ScrollBar width={500} height={300} itemHeight={32}>
-      <div key="a">Row A</div>
-      <div key="b">Row B</div>
-      <div key="c">Row C</div>
-    </ScrollBar>
-  )
+	return (
+		<ScrollBar width={500} height={300} itemHeight={32}>
+			<div key="a">Row A</div>
+			<div key="b">Row B</div>
+			<div key="c">Row C</div>
+		</ScrollBar>
+	)
 }
 ```
 
-## Indexed Rendering
+### Vue 3
 
-Use indexed rendering when the data set is too large to allocate as a full
-children array.
-
-```tsx
-import ScrollBar from "better-scrollbar"
-import "better-scrollbar/dist/ScrollBar.min.css"
-
-const ROW_COUNT = 50_000_000
-
-export default function HugeList() {
-  return (
-    <ScrollBar
-      width={720}
-      height={420}
-      itemCount={ROW_COUNT}
-      estimatedItemHeight={32}
-      heightCacheLimit={50_000}
-      overscan={2}
-      overscanPixels={320}
-      maxRenderedItems={500}
-      scrollMode="native"
-      adaptiveOverscan
-      scrollSeek={{ velocityThreshold: 2, exitVelocityThreshold: 0.8 }}
-      renderItem={(index) => (
-        <div key={index} style={{ height: 32 }}>
-          Row {index.toLocaleString()}
-        </div>
-      )}
-    />
-  )
-}
+```bash
+pnpm add @better-scrollbar/vue @better-scrollbar/core
 ```
 
-For massive logical ranges, `scrollMode="native"` stays native only while the
-browser can represent the full scroll height. When the component compresses the
-physical browser range through `maxBrowserScrollHeight`, wheel input falls back
-to the controlled path so each delta still maps to the exact logical offset.
+```vue
+<script setup>
+import { BScrollBar } from "@better-scrollbar/vue"
+import "@better-scrollbar/vue/styles/ScrollBar.less"
+</script>
 
-## Custom Scrollbar
-
-```tsx
-import type { HTMLProps } from "react"
-import ScrollBar, { type RenderElement } from "better-scrollbar"
-import "better-scrollbar/dist/ScrollBar.min.css"
-
-const renderThumb: RenderElement<HTMLProps<HTMLDivElement>> = (props) => (
-  <div
-    {...props}
-    style={{
-      ...props?.style,
-      background: "rgba(37, 99, 235, 0.7)",
-      borderRadius: 999,
-    }}
-  />
-)
-
-export default function CustomScrollbar() {
-  return (
-    <ScrollBar
-      width={500}
-      height={300}
-      scrollBarSize={8}
-      renderThumbVertical={renderThumb}
-      renderThumbHorizontal={renderThumb}
-    >
-      <div style={{ width: 900, height: 600 }}>Large content</div>
-    </ScrollBar>
-  )
-}
+<template>
+	<BScrollBar :item-count="10000" :estimated-item-height="32" :height="400">
+		<template #default="{ index }">
+			<div>Row {{ index }}</div>
+		</template>
+	</BScrollBar>
+</template>
 ```
 
 ## Documentation
 
-- [API Reference](docs/virtual-scrollbar-api.md) — full props, types, and ref
-  API.
-- [Optimization Practices](docs/virtual-list-optimization.md) — design
-  decisions and industry references.
-- [Contributing](CONTRIBUTING.md) — development setup and pull request
-  guidelines.
+- [React API Reference](packages/react/README.md) — full props, types, and ref API.
+- [Vue API Reference](packages/vue/README.md) — props, events, exposed methods, and composables.
+- [Core API Reference](packages/core/README.md) — algorithms, virtual height index, and shared types.
+- [Detailed API Reference](docs/virtual-scrollbar-api.md) — comprehensive props table with defaults.
+- [Optimization Practices](docs/virtual-list-optimization.md) — design decisions and industry references.
+- [Contributing](CONTRIBUTING.md) — development setup and pull request guidelines.
 - [Security Policy](SECURITY.md) — vulnerability reporting.
 - [Changelog](CHANGELOG.md) — release history.
 
+## Monorepo Structure
+
+```
+better-scrollbar/
+├── packages/
+│   ├── core/       # @better-scrollbar/core — algorithms, types, utilities
+│   ├── react/      # @better-scrollbar/react — React component & hooks
+│   └── vue/        # @better-scrollbar/vue — Vue 3 component & composables
+├── apps/
+│   └── site/       # Documentation site (React)
+├── src/
+│   └── index.ts    # Compatibility re-export (better-scrollbar → @better-scrollbar/react)
+├── test/           # Shared test suites
+└── docs/           # Design docs and detailed API reference
+```
+
 ## Local Development
 
-This repository uses [pnpm](https://pnpm.io/) and commits `pnpm-lock.yaml` for
-reproducible installs.
+This repository uses [pnpm](https://pnpm.io/) workspaces and
+[Turborepo](https://turbo.build/) for task orchestration.
 
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
 ```
 
-Available scripts:
-
-| Command | Description |
-| --- | --- |
-| `pnpm run typecheck` | Run TypeScript type checking |
-| `pnpm run test` | Run tests with coverage |
-| `pnpm run build` | Build the library to `dist/` |
-| `pnpm run site:dev` | Start the documentation site dev server |
-| `pnpm run site:build` | Build the documentation site to `dist-site/` |
-
-### Build Outputs
-
-`pnpm run build` produces the following artifacts in `dist/`:
-
-- `better-scrollbar.es.mjs` — ES module
-- `better-scrollbar.cjs` — CommonJS module
-- `ScrollBar.min.js` — UMD bundle
-- `ScrollBar.min.css` — Minified styles
-- `types/` — TypeScript declarations
+| Command               | Description                             |
+| --------------------- | --------------------------------------- |
+| `pnpm run build`      | Build all packages via Turborepo        |
+| `pnpm run dev`        | Start dev mode for all packages         |
+| `pnpm run typecheck`  | Type-check all packages                 |
+| `pnpm run lint`       | Lint all source files with ESLint       |
+| `pnpm run test`       | Run tests with coverage                 |
+| `pnpm run clean`      | Remove all build artifacts              |
+| `pnpm run site:dev`   | Start the documentation site dev server |
+| `pnpm run site:build` | Build the documentation site            |
 
 ## Browser Support
 

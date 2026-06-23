@@ -1,0 +1,5 @@
+export { default as BScrollBar } from "./BScrollBar.vue"
+export { default as BScrollBarItem } from "./BScrollBarItem.vue"
+export * from "./components"
+export * from "./composables"
+export type * from "./types"

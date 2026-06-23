@@ -1,32 +1,19 @@
 {
 	"compilerOptions": {
 		"baseUrl": "./src",
-		"jsx": "react",
+		"jsx": "react-jsx",
 		"moduleResolution": "node",
-		"target": "es5",
-		"module": "esnext",
-		"lib": [
-			"dom",
-			"es2015",
-			"es2016",
-			"es2017",
-			"dom.iterable",
-			"scripthost"
-		],
-		"strictNullChecks": true,
+		"target": "ES2020",
+		"module": "ESNext",
+		"lib": ["DOM", "DOM.Iterable", "ES2020"],
 		"strict": true,
 		"allowJs": false,
 		"sourceMap": true,
 		"declaration": true,
-		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
-		"emitDecoratorMetadata": true,
 		"declarationDir": "dist/types",
 		"outDir": "dist/lib",
-		"typeRoots": [
-			"node_modules/@types",
-			"types"
-		],
+		"typeRoots": ["node_modules/@types", "types"],
 		"noUnusedParameters": true,
 		"noUnusedLocals": true,
 		"noImplicitAny": true,
@@ -35,28 +22,26 @@
 		"forceConsistentCasingInFileNames": true,
 		"resolveJsonModule": true,
 		"stripInternal": true,
-		"types": [
-			"node"
-		],
+		"types": ["node"],
 		"paths": {
-			"@/*": [
-				"../site/*"
-			],
-			"ScrollBar/*": [
-				"./src/*"
-			]
+			"@/*": ["../apps/site/*"],
+			"ScrollBar/*": ["./src/*"],
+			"@better-scrollbar/react": ["../packages/react/src/index.ts"],
+			"@better-scrollbar/react/*": ["../packages/react/src/*"],
+			"@better-scrollbar/vue": ["../packages/vue/src/index.ts"],
+			"@better-scrollbar/vue/*": ["../packages/vue/src/*"],
+			"@better-scrollbar/core": ["../packages/core/src/index.ts"],
+			"@better-scrollbar/core/*": ["../packages/core/src/*"]
 		}
 	},
 	"include": [
-		"src",
-		"site",
-		".prettierrc.js",
-		"babel.config.js",
+		"src/index.ts",
+		"packages/react/src",
+		"packages/vue/src",
+		"packages/core/src",
+		"apps/site",
 		"types/*.ts",
 		"test"
 	],
-	"exclude": [
-		"node_modules",
-		"dist"
-	]
+	"exclude": ["node_modules", "dist", "apps/site/dist"]
 }

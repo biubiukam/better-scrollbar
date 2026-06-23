@@ -1,0 +1,76 @@
+name: CI
+
+on:
+    push:
+        branches: [master, feature/*]
+    pull_request:
+        branches: [master, feature/*]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Enable Corepack
+              run: corepack enable
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            - run: pnpm install
+
+            - name: Lint
+              run: pnpm run lint
+
+    typecheck:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Enable Corepack
+              run: corepack enable
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            - run: pnpm install
+
+            - name: Build packages
+              run: pnpm run build
+
+            - name: Type check
+              run: pnpm run typecheck
+
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Enable Corepack
+              run: corepack enable
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            - run: pnpm install
+
+            - name: Test with coverage
+              run: pnpm run test
+
+            - name: Upload coverage
+              if: github.event_name != 'pull_request'
+              uses: coverallsapp/github-action@v2

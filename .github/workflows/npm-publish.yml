@@ -1,83 +1,122 @@
-name: Publish package
+name: Publish packages
 
 on:
-  push:
-    tags:
-      - "[0-9]*.[0-9]*.[0-9]*"
-  workflow_dispatch:
+    push:
+        tags:
+            - "[0-9]*.[0-9]*.[0-9]*"
+    workflow_dispatch:
+        inputs:
+            version:
+                description: "Version to publish (semver, e.g. 2.1.0)"
+                required: true
+                type: string
 
 permissions:
-  contents: write
-  packages: write
+    contents: write
+    id-token: write
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+    publish:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - name: Extract version from tag
-        id: version
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+            - name: Extract version
+              id: version
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+                  else
+                    TAG="${GITHUB_REF#refs/tags/}"
+                    echo "version=$TAG" >> "$GITHUB_OUTPUT"
+                  fi
 
-      - name: Validate semver format
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$'; then
-            echo "::error::Invalid semver: $VERSION"
-            exit 1
-          fi
+            - name: Validate semver format
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
+                  if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$'; then
+                    echo "::error::Invalid semver: $VERSION"
+                    exit 1
+                  fi
 
-      - name: Enable Corepack
-        run: corepack enable
+            - name: Enable Corepack
+              run: corepack enable
 
-      - name: Set up Node.js (npm registry)
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+                  registry-url: https://registry.npmjs.org
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+            - name: Install dependencies
+              run: pnpm install
 
-      - name: Update package.json version
-        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+            - name: Lint
+              run: pnpm run lint
 
-      - name: Run tests
-        run: pnpm run test
+            - name: Build all packages (needed for typecheck)
+              run: pnpm run build
+              env:
+                  NODE_OPTIONS: "--max_old_space_size=4096"
 
-      - name: Build package
-        run: pnpm run build
-        env:
-          NODE_OPTIONS: "--max_old_space_size=4096"
+            - name: Type check
+              run: pnpm run typecheck
 
-      - name: Publish to npm
-        run: pnpm publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - name: Run tests
+              run: pnpm run test
 
-      - name: Publish to GitHub Packages
-        run: |
-          npm pkg set name="@${{ github.repository_owner }}/better-scrollbar"
-          echo "@${{ github.repository_owner }}:registry=https://npm.pkg.github.com" > .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
-          pnpm publish --access public --no-git-checks
-          git checkout -- package.json .npmrc 2>/dev/null || true
+            - name: Build compat package
+              run: pnpm run build:compat
 
-      - name: Commit version update back to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
-          git checkout "$DEFAULT_BRANCH"
-          git add package.json
-          git diff --cached --quiet && exit 0
-          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-          git push origin "$DEFAULT_BRANCH"
+            - name: Sync version across all packages
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
+                  npm version "$VERSION" --no-git-tag-version
+                  pnpm --filter @better-scrollbar/core exec npm version "$VERSION" --no-git-tag-version
+                  pnpm --filter @better-scrollbar/react exec npm version "$VERSION" --no-git-tag-version
+                  pnpm --filter @better-scrollbar/vue exec npm version "$VERSION" --no-git-tag-version
+
+            - name: Publish @better-scrollbar/core
+              run: pnpm --filter @better-scrollbar/core publish --access public --no-git-checks --provenance
+
+            - name: Publish @better-scrollbar/react
+              run: pnpm --filter @better-scrollbar/react publish --access public --no-git-checks --provenance
+
+            - name: Publish @better-scrollbar/vue
+              run: pnpm --filter @better-scrollbar/vue publish --access public --no-git-checks --provenance
+
+            - name: Publish better-scrollbar (compat)
+              run: pnpm publish --access public --no-git-checks --provenance
+
+            - name: Create GitHub Release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
+                  TAG="${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}"
+                  gh release create "$TAG" \
+                    --title "v$VERSION" \
+                    --generate-notes
+
+            - name: Commit version update back to repo
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+                  git stash --include-untracked
+                  git checkout "$DEFAULT_BRANCH"
+                  git pull origin "$DEFAULT_BRANCH"
+                  npm version "$VERSION" --no-git-tag-version
+                  pnpm --filter @better-scrollbar/core exec npm version "$VERSION" --no-git-tag-version
+                  pnpm --filter @better-scrollbar/react exec npm version "$VERSION" --no-git-tag-version
+                  pnpm --filter @better-scrollbar/vue exec npm version "$VERSION" --no-git-tag-version
+                  git add package.json packages/core/package.json packages/react/package.json packages/vue/package.json pnpm-lock.yaml
+                  git diff --cached --quiet && exit 0
+                  git commit -m "chore: release v$VERSION"
+                  git push origin "$DEFAULT_BRANCH"

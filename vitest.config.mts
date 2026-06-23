@@ -1,10 +1,10 @@
 /// <reference types="vitest" />
 /// <reference types="vitest/globals" />
 import { defineConfig } from "vitest/config"
-import { createReactPlugins, sharedCssConfig, siteResolveConfig } from "./vite.config.shared"
+import { createReactPlugins, createVuePlugins, sharedCssConfig, siteResolveConfig } from "./vite.config.shared"
 
 export default defineConfig({
-	plugins: createReactPlugins(),
+	plugins: [...createReactPlugins(), ...createVuePlugins()],
 	test: {
 		globals: true,
 		environment: "jsdom",
@@ -12,8 +12,8 @@ export default defineConfig({
 		include: ["**/*.test.(ts|tsx)"],
 		coverage: {
 			reporter: ["text", "json", "html", "lcov"],
-			include: ["src/**/*.{ts,tsx}"],
-			exclude: ["node_modules/", "test/", "dist/", "lib/", "es/", "site/", "coverage/"],
+			include: ["packages/core/src/**/*.{ts,tsx}", "packages/react/src/**/*.{ts,tsx}", "packages/vue/src/**/*.{ts,vue}"],
+			exclude: ["node_modules/", "test/", "dist/", "lib/", "es/", "apps/site/", "coverage/", "packages/*/dist/", "**/*.d.ts"],
 			thresholds: {
 				statements: 100,
 				branches: 100,

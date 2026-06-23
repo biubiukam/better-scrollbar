@@ -6,17 +6,13 @@
 		"declaration": true,
 		"declarationMap": false,
 		"declarationDir": "dist/types",
-		"outDir": "dist/types"
+		"outDir": "dist/types",
+		"rootDir": "src",
+		"baseUrl": ".",
+		"paths": {
+			"@better-scrollbar/react": ["packages/react/dist/types/index.d.ts"]
+		}
 	},
-	"include": [
-		"src",
-		"types/*.ts"
-	],
-	"exclude": [
-		"node_modules",
-		"dist",
-		"dist-site",
-		"site",
-		"test"
-	]
+	"include": ["src/index.ts"],
+	"exclude": ["node_modules", "dist", "apps/site", "test"]
 }

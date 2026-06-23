@@ -1,0 +1,80 @@
+{
+	"name": "@better-scrollbar/react",
+	"version": "2.0.0",
+	"description": "React adapter for better-scrollbar — highly customizable, high-performance virtual scrollbar component.",
+	"license": "MIT",
+	"author": "biubiukam",
+	"type": "module",
+	"homepage": "https://biubiukam.github.io/better-scrollbar/",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/biubiukam/better-scrollbar",
+		"directory": "packages/react"
+	},
+	"bugs": {
+		"url": "https://github.com/biubiukam/better-scrollbar/issues"
+	},
+	"keywords": [
+		"react",
+		"virtual-scroll",
+		"virtual-list",
+		"virtualization",
+		"scrollbar",
+		"custom-scrollbar",
+		"infinite-scroll",
+		"large-list",
+		"dynamic-height",
+		"high-performance"
+	],
+	"engines": {
+		"node": ">=18"
+	},
+	"main": "dist/better-scrollbar-react.cjs",
+	"module": "dist/better-scrollbar-react.es.mjs",
+	"unpkg": "dist/BetterScrollbarReact.min.js",
+	"typings": "dist/types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/better-scrollbar-react.es.mjs",
+			"require": "./dist/better-scrollbar-react.cjs",
+			"default": "./dist/better-scrollbar-react.es.mjs"
+		},
+		"./styles/ScrollBar.less": "./src/styles/ScrollBar.less"
+	},
+	"sideEffects": [
+		"**/*.css",
+		"**/*.less"
+	],
+	"files": [
+		"dist",
+		"src/styles"
+	],
+	"scripts": {
+		"build": "pnpm --filter @better-scrollbar/core build && vite build --config vite.config.mts && tsc -p tsconfig.json --emitDeclarationOnly",
+		"typecheck": "pnpm --filter @better-scrollbar/core build && tsc -p tsconfig.json --noEmit",
+		"test": "vitest run ../../test/reactPackage.test.tsx ../../test/ScrollBar.test.tsx ../../test/internalComponents.test.tsx",
+		"clean": "rimraf dist"
+	},
+	"dependencies": {
+		"clsx": "^2.1.0"
+	},
+	"peerDependencies": {
+		"@better-scrollbar/core": ">=1.0.0",
+		"react": ">=16.9.0",
+		"react-dom": ">=16.9.0"
+	},
+	"devDependencies": {
+		"@better-scrollbar/core": "workspace:*",
+		"@types/node": "^20.10.3",
+		"@types/react": "^18.2.43",
+		"@types/react-dom": "^18.2.17",
+		"@vitejs/plugin-react": "^4.2.0",
+		"less": "^4.2.0",
+		"react": ">=16.9.0",
+		"react-dom": ">=16.9.0",
+		"typescript": "^5.3.2",
+		"vite": "^5.0.8",
+		"vitest": "^1.0.4"
+	}
+}

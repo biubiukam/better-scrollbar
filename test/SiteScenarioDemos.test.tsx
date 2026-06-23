@@ -3,40 +3,41 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import React from "react"
 import { describe, expect, it, vi } from "vitest"
-import { HOME_COPY } from "../site/i18n/home"
-import { AgentConversationDemo } from "../site/examplex/AgentConversationCase"
-import { AgentMessageRow } from "../site/examplex/AgentConversationCase/components"
-import { AuditLogDemo } from "../site/examplex/AuditLogCase"
-import { MediaSearchDemo } from "../site/examplex/MediaSearchCase"
-import { RuleQueueDemo } from "../site/examplex/RuleQueueCase"
+import { HOME_COPY } from "../apps/site/i18n/home"
+import { AgentConversationDemo } from "../apps/site/examplex/AgentConversationCase"
+import { AgentMessageRow } from "../apps/site/examplex/AgentConversationCase/components"
+import { AuditLogDemo } from "../apps/site/examplex/AuditLogCase"
+import { MediaSearchDemo } from "../apps/site/examplex/MediaSearchCase"
+import { RuleQueueDemo } from "../apps/site/examplex/RuleQueueCase"
 import {
 	AGENT_STREAM_CHUNK_MS,
 	MOCK_AGENT_CONVERSATION,
-	createMockAgentStream,
-} from "../site/examplex/AgentConversationCase/mockData"
-import { DemosSection } from "../site/views/Home/components/DemosSection"
-import { DEMOS } from "../site/views/Home/data"
+	createMockAgentStream
+} from "../apps/site/examplex/AgentConversationCase/mockData"
+import { DemosSection } from "../apps/site/views/Home/components/DemosSection"
+import { DEMOS } from "../apps/site/views/Home/data"
 import "../src/styles/index.less"
 
-const EXAMPLEX_ROOT = join(process.cwd(), "site/examplex")
+const EXAMPLEX_ROOT = join(process.cwd(), "apps/site/examplex")
 const AGENT_LABELS = {
 	thinkingTitle: "Reasoning",
 	collapseThinking: "Collapse reasoning",
 	expandThinking: "Expand reasoning",
 	toolChunkPhase: "tool chunks",
 	toolCallingPhase: "tool calling",
-	toolResponsePhase: "tool response",
+	toolResponsePhase: "tool response"
 }
-const sortableCreate = vi.hoisted(() => vi.fn(() => ({destroy: vi.fn()})))
+const sortableCreate = vi.hoisted(() => vi.fn(() => ({ destroy: vi.fn() })))
 type MockSortableOptions = {
 	draggable?: string
 	forceFallback?: boolean
-	onEnd?: (event: {oldIndex?: number, newIndex?: number}) => void
+	onEnd?: (event: { oldIndex?: number; newIndex?: number }) => void
 }
 
 function getAgentMessageCount(container: HTMLElement) {
-	const label = Array.from(container.querySelectorAll(".agent-demo-wrapper span"))
-		.find((span) => span.textContent === "Messages")
+	const label = Array.from(container.querySelectorAll(".agent-demo-wrapper span")).find(
+		(span) => span.textContent === "Messages"
+	)
 	const value = label?.parentElement?.querySelector("strong")?.textContent
 
 	return Number(value)
@@ -62,34 +63,37 @@ describe("site agent scenario demo", () => {
 	})
 
 	it("keeps the four scenario demos while only replacing the agent conversation case", () => {
-		const { getByRole, getByText, queryByRole } = render(<DemosSection copy={ HOME_COPY.en }/>)
+		const { getByRole, getByText, queryByRole } = render(<DemosSection copy={HOME_COPY.en} />)
 
 		expect(DEMOS.map((demo) => demo.id)).toEqual(["agent", "audit", "media", "rules"])
-		expect(getByRole("button", {name: /Agent conversation/})).toBeTruthy()
-		expect(queryByRole("heading", {name: /Current Demo/})).toBeNull()
+		expect(getByRole("button", { name: /Agent conversation/ })).toBeTruthy()
+		expect(queryByRole("heading", { name: /Current Demo/ })).toBeNull()
 		expect(getByText("Agent conversation / OpenAI-style streaming tool calls")).toBeTruthy()
-		expect(getByRole("button", {name: /Audit log/})).toBeTruthy()
-		expect(getByRole("button", {name: /Rich media/})).toBeTruthy()
-		expect(getByRole("button", {name: /Rule queue/})).toBeTruthy()
-		expect(queryByRole("button", {name: /Dynamic height/})).toBeNull()
+		expect(getByRole("button", { name: /Audit log/ })).toBeTruthy()
+		expect(getByRole("button", { name: /Rich media/ })).toBeTruthy()
+		expect(getByRole("button", { name: /Rule queue/ })).toBeTruthy()
+		expect(queryByRole("button", { name: /Dynamic height/ })).toBeNull()
 	})
 
 	it("lets every scenario demo surface size to its real content height", () => {
-		const { container } = render(<DemosSection copy={ HOME_COPY.en }/>)
-		const visibleDemoButtons = Array.from(container.querySelectorAll("#demos aside button"))
-			.filter((button) => button.className.includes("items-start"))
+		const { container } = render(<DemosSection copy={HOME_COPY.en} />)
+		const visibleDemoButtons = Array.from(
+			container.querySelectorAll("#demos aside button")
+		).filter((button) => button.className.includes("items-start"))
 		const wrapperByDemo: Record<(typeof DEMOS)[number]["id"], string> = {
 			agent: ".agent-demo-wrapper",
 			audit: ".audit-demo-wrapper",
 			media: ".media-demo-wrapper",
-			rules: ".rule-demo-wrapper",
+			rules: ".rule-demo-wrapper"
 		}
 
 		expect(visibleDemoButtons).toHaveLength(DEMOS.length)
 		DEMOS.forEach((demo, index) => {
 			fireEvent.click(visibleDemoButtons[index])
 			const demoWrapper = container.querySelector(wrapperByDemo[demo.id]) as HTMLElement
-			const containerRoot = demoWrapper?.parentElement?.parentElement as HTMLElement | undefined
+			const containerRoot = demoWrapper?.parentElement?.parentElement as
+				| HTMLElement
+				| undefined
 
 			expect(demoWrapper).toBeTruthy()
 			expect(demoWrapper.className).not.toContain("h-full")
@@ -100,7 +104,11 @@ describe("site agent scenario demo", () => {
 	it("keeps mock data and the 24ms chunk contract in the scenario module", () => {
 		const stream = createMockAgentStream(MOCK_AGENT_CONVERSATION)
 		const textDeltas = stream.flatMap((event) => {
-			if (event.type === "thinking_delta" || event.type === "assistant_delta" || event.type === "tool_delta") {
+			if (
+				event.type === "thinking_delta" ||
+				event.type === "assistant_delta" ||
+				event.type === "tool_delta"
+			) {
 				return [event.delta]
 			}
 
@@ -109,34 +117,48 @@ describe("site agent scenario demo", () => {
 
 		expect(AGENT_STREAM_CHUNK_MS).toBe(24)
 		expect(MOCK_AGENT_CONVERSATION.messages.length).toBeGreaterThan(8)
-		expect(MOCK_AGENT_CONVERSATION.messages.some((message) => message.kind === "thinking")).toBe(true)
-		expect(MOCK_AGENT_CONVERSATION.messages.some((message) => message.kind === "tool")).toBe(true)
+		expect(
+			MOCK_AGENT_CONVERSATION.messages.some((message) => message.kind === "thinking")
+		).toBe(true)
+		expect(MOCK_AGENT_CONVERSATION.messages.some((message) => message.kind === "tool")).toBe(
+			true
+		)
 		expect(Math.max(...textDeltas.map((delta) => delta.length))).toBeLessThanOrEqual(24)
 		expect(textDeltas.length).toBeGreaterThan(120)
-		expect(stream.some((event) => event.type === "tool_delta" && event.phase === "chunk")).toBe(true)
-		expect(stream.some((event) => event.type === "tool_status" && event.phase === "calling")).toBe(true)
-		expect(stream.some((event) => event.type === "tool_delta" && event.phase === "response")).toBe(true)
+		expect(stream.some((event) => event.type === "tool_delta" && event.phase === "chunk")).toBe(
+			true
+		)
+		expect(
+			stream.some((event) => event.type === "tool_status" && event.phase === "calling")
+		).toBe(true)
+		expect(
+			stream.some((event) => event.type === "tool_delta" && event.phase === "response")
+		).toBe(true)
 	})
 
 	it("renders the conversation through the core virtual scrollbar", () => {
-		const { container, getByText } = render(<AgentConversationDemo/>)
+		const { container, getByText } = render(<AgentConversationDemo />)
 
 		expect(container.querySelector(".scroll-bar-container")).toBeTruthy()
 		expect(container.querySelector(".agent-message-row")).toBeTruthy()
 		expect(getByText("Chunk interval")).toBeTruthy()
 		expect(getByText("24ms / chunk")).toBeTruthy()
-		expect(getByText(/I need help diagnosing a production agent orchestration issue/)).toBeTruthy()
+		expect(
+			getByText(/I need help diagnosing a production agent orchestration issue/)
+		).toBeTruthy()
 	})
 
 	it("exposes message rows as measurable DOM nodes for virtual height collection", () => {
 		const rowRef = React.createRef<HTMLDivElement>()
 
-		render(React.createElement(AgentMessageRow as React.ElementType, {
-			ref: rowRef,
-			labels: AGENT_LABELS,
-			message: MOCK_AGENT_CONVERSATION.messages[0],
-			onToggleThinking: vi.fn(),
-		}))
+		render(
+			React.createElement(AgentMessageRow as React.ElementType, {
+				ref: rowRef,
+				labels: AGENT_LABELS,
+				message: MOCK_AGENT_CONVERSATION.messages[0],
+				onToggleThinking: vi.fn()
+			})
+		)
 
 		expect(rowRef.current?.classList.contains("agent-message-row")).toBe(true)
 	})
@@ -145,12 +167,20 @@ describe("site agent scenario demo", () => {
 		vi.useFakeTimers()
 
 		try {
-			const { container, getAllByText, getByRole, getByText, queryByText } = render(<AgentConversationDemo/>)
-			const replayButton = getByRole("button", {name: "Replay"})
+			const { container, getAllByText, getByRole, getByText, queryByText } = render(
+				<AgentConversationDemo />
+			)
+			const replayButton = getByRole("button", { name: "Replay" })
 			const stream = createMockAgentStream(MOCK_AGENT_CONVERSATION)
-			const toolChunkIndex = stream.findIndex((event) => event.type === "tool_delta" && event.phase === "chunk")
-			const toolCallingIndex = stream.findIndex((event) => event.type === "tool_status" && event.phase === "calling")
-			const toolResponseIndex = stream.findIndex((event) => event.type === "tool_delta" && event.phase === "response")
+			const toolChunkIndex = stream.findIndex(
+				(event) => event.type === "tool_delta" && event.phase === "chunk"
+			)
+			const toolCallingIndex = stream.findIndex(
+				(event) => event.type === "tool_status" && event.phase === "calling"
+			)
+			const toolResponseIndex = stream.findIndex(
+				(event) => event.type === "tool_delta" && event.phase === "response"
+			)
 			const initialMessageCount = MOCK_AGENT_CONVERSATION.messages.length
 			let elapsedEvents = 0
 			const advanceToEvent = (eventIndex: number) => {
@@ -180,21 +210,29 @@ describe("site agent scenario demo", () => {
 			elapsedEvents = 1
 
 			expect(getByText(/First restat/)).toBeTruthy()
-			expect(container.querySelector(".agent-thinking-card[aria-expanded='true']")).toBeTruthy()
+			expect(
+				container.querySelector(".agent-thinking-card[aria-expanded='true']")
+			).toBeTruthy()
 			expect(getAgentMessageCount(container)).toBe(initialMessageCount + 1)
 
 			advanceToEvent(toolChunkIndex)
 
 			expect(container.querySelector(".agent-message-body")).toBeTruthy()
-			expect(container.querySelector(".agent-tool-call[data-tool-phase='chunk']")).toBeTruthy()
+			expect(
+				container.querySelector(".agent-tool-call[data-tool-phase='chunk']")
+			).toBeTruthy()
 
 			advanceToEvent(toolCallingIndex)
 
-			expect(container.querySelector(".agent-tool-call[data-tool-phase='calling']")).toBeTruthy()
+			expect(
+				container.querySelector(".agent-tool-call[data-tool-phase='calling']")
+			).toBeTruthy()
 
 			advanceToEvent(toolResponseIndex)
 
-			expect(container.querySelector(".agent-tool-call[data-tool-phase='response']")).toBeTruthy()
+			expect(
+				container.querySelector(".agent-tool-call[data-tool-phase='response']")
+			).toBeTruthy()
 			expect(getAllByText(/Tool response returned/).length).toBeGreaterThanOrEqual(1)
 		} finally {
 			vi.useRealTimers()
@@ -205,8 +243,8 @@ describe("site agent scenario demo", () => {
 		vi.useFakeTimers()
 
 		try {
-			const { container, getByRole } = render(<AgentConversationDemo/>)
-			const replayButton = getByRole("button", {name: "Replay"})
+			const { container, getByRole } = render(<AgentConversationDemo />)
+			const replayButton = getByRole("button", { name: "Replay" })
 			const initialMessageCount = getAgentMessageCount(container)
 			const streamDuration = getStreamDuration()
 
@@ -238,8 +276,8 @@ describe("site agent scenario demo", () => {
 		const setTimeoutSpy = vi.spyOn(window, "setTimeout")
 
 		try {
-			const { getByRole, queryByText } = render(<AgentConversationDemo/>)
-			const replayButton = getByRole("button", {name: "Replay"})
+			const { getByRole, queryByText } = render(<AgentConversationDemo />)
+			const replayButton = getByRole("button", { name: "Replay" })
 
 			setIntervalSpy.mockClear()
 			setTimeoutSpy.mockClear()
@@ -249,7 +287,9 @@ describe("site agent scenario demo", () => {
 			})
 
 			expect(setIntervalSpy).not.toHaveBeenCalled()
-			expect(setTimeoutSpy.mock.calls.some((call) => call[1] === AGENT_STREAM_CHUNK_MS)).toBe(true)
+			expect(setTimeoutSpy.mock.calls.some((call) => call[1] === AGENT_STREAM_CHUNK_MS)).toBe(
+				true
+			)
 
 			act(() => {
 				vi.advanceTimersByTime(AGENT_STREAM_CHUNK_MS - 1)
@@ -263,7 +303,9 @@ describe("site agent scenario demo", () => {
 
 			expect(queryByText(/First restat/)).toBeTruthy()
 
-			const streamTimeouts = setTimeoutSpy.mock.calls.filter((call) => call[1] === AGENT_STREAM_CHUNK_MS)
+			const streamTimeouts = setTimeoutSpy.mock.calls.filter(
+				(call) => call[1] === AGENT_STREAM_CHUNK_MS
+			)
 			expect(streamTimeouts.length).toBeGreaterThanOrEqual(2)
 		} finally {
 			setIntervalSpy.mockRestore()
@@ -273,10 +315,10 @@ describe("site agent scenario demo", () => {
 	})
 
 	it("keeps the bottom breathing room as a virtual spacer when jumping to the latest message", () => {
-		const { container, getByRole } = render(<AgentConversationDemo/>)
+		const { container, getByRole } = render(<AgentConversationDemo />)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "Scroll bottom"}))
+			fireEvent.click(getByRole("button", { name: "Scroll bottom" }))
 		})
 
 		const renderedRows = Array.from(container.querySelectorAll(".agent-message-row"))
@@ -288,10 +330,10 @@ describe("site agent scenario demo", () => {
 		vi.useFakeTimers()
 
 		try {
-			const { container, getByRole } = render(<AgentConversationDemo/>)
+			const { container, getByRole } = render(<AgentConversationDemo />)
 
 			act(() => {
-				fireEvent.click(getByRole("button", {name: "Replay"}))
+				fireEvent.click(getByRole("button", { name: "Replay" }))
 			})
 
 			act(() => {
@@ -311,33 +353,35 @@ describe("site agent scenario demo", () => {
 			})
 
 			expect(thinkingCard?.getAttribute("aria-expanded")).toBe("true")
-			expect(thinkingCard?.querySelector(".agent-thinking-detail")?.textContent).toContain("First restate the target")
+			expect(thinkingCard?.querySelector(".agent-thinking-detail")?.textContent).toContain(
+				"First restate the target"
+			)
 		} finally {
 			vi.useRealTimers()
 		}
 	})
 
 	it("lets the audit log demo switch scroll mode and jump through a 100M indexed range", () => {
-		const { getByRole, getAllByText } = render(<AuditLogDemo copy={ HOME_COPY.en.examples }/>)
+		const { getByRole, getAllByText } = render(<AuditLogDemo copy={HOME_COPY.en.examples} />)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "Switch native"}))
+			fireEvent.click(getByRole("button", { name: "Switch native" }))
 		})
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "Jump risk"}))
+			fireEvent.click(getByRole("button", { name: "Jump risk" }))
 		})
 
 		expect(getAllByText("scrollMode: native").length).toBeGreaterThanOrEqual(1)
 	})
 
 	it("simulates rich media search changes without losing the scroll performance controls", () => {
-		const { getByRole, getByText } = render(<MediaSearchDemo copy={ HOME_COPY.en.examples }/>)
+		const { getByRole, getByText } = render(<MediaSearchDemo copy={HOME_COPY.en.examples} />)
 
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "Switch query"}))
+			fireEvent.click(getByRole("button", { name: "Switch query" }))
 		})
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "Toggle density"}))
+			fireEvent.click(getByRole("button", { name: "Toggle density" }))
 		})
 
 		expect(getByText("adaptiveOverscan: on")).toBeTruthy()
@@ -346,7 +390,7 @@ describe("site agent scenario demo", () => {
 
 	it("keeps the rule queue demo draggable inside the mounted virtual window", () => {
 		sortableCreate.mockClear()
-		const { container, getByRole } = render(<RuleQueueDemo copy={ HOME_COPY.en.examples }/>)
+		const { container, getByRole } = render(<RuleQueueDemo copy={HOME_COPY.en.examples} />)
 		const calls = sortableCreate.mock.calls as unknown as Array<[unknown, MockSortableOptions]>
 		const options = calls[0]?.[1]
 
@@ -355,10 +399,10 @@ describe("site agent scenario demo", () => {
 		expect(options?.forceFallback).toBe(true)
 
 		act(() => {
-			options?.onEnd?.({oldIndex: 0, newIndex: 1})
+			options?.onEnd?.({ oldIndex: 0, newIndex: 1 })
 		})
 		act(() => {
-			fireEvent.click(getByRole("button", {name: "Promote priority"}))
+			fireEvent.click(getByRole("button", { name: "Promote priority" }))
 		})
 
 		const rows = Array.from(container.querySelectorAll(".rule-demo-row")).slice(0, 2)
@@ -371,11 +415,11 @@ describe("site agent scenario demo", () => {
 			{ Component: AgentConversationDemo, toolbar: ".agent-demo-toolbar" },
 			{ Component: AuditLogDemo, toolbar: ".audit-demo-toolbar" },
 			{ Component: MediaSearchDemo, toolbar: ".media-demo-toolbar" },
-			{ Component: RuleQueueDemo, toolbar: ".rule-demo-toolbar" },
+			{ Component: RuleQueueDemo, toolbar: ".rule-demo-toolbar" }
 		]
 
 		demos.forEach(({ Component, toolbar }) => {
-			const { container, unmount } = render(<Component copy={ HOME_COPY.en.examples }/>)
+			const { container, unmount } = render(<Component copy={HOME_COPY.en.examples} />)
 			const scrollPane = container.querySelector(".scroll-bar-outer-container")
 
 			expect(scrollPane?.getAttribute("style")).toContain("height: 360px")

@@ -1,4 +1,4 @@
-import "../src/styles/ScrollBar.less"
+import "@better-scrollbar/react/styles/ScrollBar.less"
 
-export * from "../src"
-export { default } from "../src"
+export * from "@better-scrollbar/react"
+export { default } from "@better-scrollbar/react"
