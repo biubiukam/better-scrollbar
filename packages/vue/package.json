@@ -1,6 +1,6 @@
 {
 	"name": "@better-scrollbar/vue",
-	"version": "1.0.0",
+	"version": "2.0.2",
 	"description": "Vue 3 adapter for better-scrollbar — highly customizable, high-performance virtual scrollbar component.",
 	"license": "MIT",
 	"author": "biubiukam",

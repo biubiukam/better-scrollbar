@@ -1,6 +1,6 @@
 {
 	"name": "better-scrollbar",
-	"version": "1.0.0",
+	"version": "2.0.2",
 	"description": "Highly customizable, high-performance virtual scrollbar component. This package re-exports @better-scrollbar/react for backward compatibility.",
 	"packageManager": "pnpm@10.11.0",
 	"type": "module",
