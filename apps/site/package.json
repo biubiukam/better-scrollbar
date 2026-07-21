@@ -20,17 +20,17 @@
 		"sortablejs": "^1.15.2"
 	},
 	"devDependencies": {
-		"@types/node": "^20.10.3",
-		"@types/react": "^18.2.43",
-		"@types/react-dom": "^18.2.17",
+		"@types/node": "^26.1.1",
+		"@types/react": "^19.2.17",
+		"@types/react-dom": "^19.2.3",
 		"@types/sortablejs": "^1.15.7",
-		"@vitejs/plugin-react": "^4.2.0",
+		"@vitejs/plugin-react": "^6.0.3",
 		"autoprefixer": "^10.5.0",
 		"less": "^4.2.0",
 		"postcss": "^8.5.15",
-		"tailwindcss": "^3.4.19",
+		"tailwindcss": "^4.3.3",
 		"tailwindcss-animate": "^1.0.7",
-		"typescript": "^5.3.2",
-		"vite": "^5.0.8"
+		"typescript": "^7.0.2",
+		"vite": "^8.1.5"
 	}
 }
